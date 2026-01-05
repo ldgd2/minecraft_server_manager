@@ -1,0 +1,127 @@
+/* views/app/css/os.css */
+body {
+    background-color: #000;
+    overflow: hidden;
+    user-select: none;
+}
+
+.mica-effect {
+    background-color: rgba(32, 32, 32, 0.65);
+    backdrop-filter: blur(24px) saturate(125%);
+    -webkit-backdrop-filter: blur(24px) saturate(125%);
+}
+
+.wallpaper {
+    background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop') no-repeat center center fixed;
+    background-size: cover;
+    transition: transform 0.5s ease-out, filter 0.5s ease-out;
+}
+
+/* Estilo para cuando estamos en login (blur fondo) */
+body.login-mode .wallpaper {
+    filter: blur(15px) brightness(0.8);
+    transform: scale(1.02);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+.window-transition { transition: transform 0.2s, opacity 0.2s, width 0.2s, height 0.2s, top 0.2s, left 0.2s; }
+.minimized { transform: scale(0.7) translateY(300px) !important; opacity: 0 !important; pointer-events: none; }
+.maximized { top: 0 !important; left: 0 !important; width: 100% !important; height: calc(100% - 48px) !important; border-radius: 0 !important; }
+
+/* Ocultar elementos */
+.hidden { display: none !important; }
+.fade-out { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+
+/* Estilos específicos inputs */
+.login-input {
+    background: rgba(28, 28, 28, 0.8);
+    border: 1px solid #4a4a4a;
+    color: white;
+    transition: all 0.2s;
+}
+.login-input:focus {
+    background: rgba(0, 0, 0, 0.9);
+    border-color: #60CDFF;
+    outline: none;
+}
+
+/* ============================================
+   RESIZE HANDLES
+   ============================================ */
+.resize-handle {
+    position: absolute;
+    z-index: 100;
+    background: transparent;
+}
+
+/* Edge handles */
+.resize-n { top: 0; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.resize-s { bottom: 0; left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+.resize-e { right: 0; top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+.resize-w { left: 0; top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+
+/* Corner handles */
+.resize-nw { top: 0; left: 0; width: 12px; height: 12px; cursor: nwse-resize; }
+.resize-ne { top: 0; right: 0; width: 12px; height: 12px; cursor: nesw-resize; }
+.resize-sw { bottom: 0; left: 0; width: 12px; height: 12px; cursor: nesw-resize; }
+.resize-se { bottom: 0; right: 0; width: 12px; height: 12px; cursor: nwse-resize; }
+
+/* Visible indicator on hover (optional subtle glow) */
+.resize-handle:hover {
+    background: rgba(96, 205, 255, 0.1);
+}
+
+/* ============================================
+   SNAP PREVIEW OVERLAY
+   ============================================ */
+.snap-preview {
+    position: absolute;
+    background: rgba(96, 205, 255, 0.15);
+    border: 2px solid rgba(96, 205, 255, 0.4);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.1s, left 0.1s, top 0.1s, width 0.1s, height 0.1s;
+}
+
+.snap-preview.visible {
+    opacity: 1;
+}
+
+/* ============================================
+   WINDOW CONTENT SCROLLBAR
+   ============================================ */
+.win-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.win-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.win-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.win-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.win-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    background-clip: padding-box;
+}
+
+/* Iframe scrollable on all windows */
+iframe {
+    overflow: auto;
+}

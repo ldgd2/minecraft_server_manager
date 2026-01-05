@@ -1,0 +1,592 @@
+{% extends "components/layout.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Windows Store Detail Page Style */
+    .mod-detail-page {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #191919;
+        color: #fff;
+    }
+
+    .mod-detail-header {
+        position: relative;
+        height: 280px;
+        background: linear-gradient(135deg, #0078d4 0%, #00bcf2 100%);
+        overflow: hidden;
+    }
+
+    .mod-detail-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100px;
+        background: linear-gradient(transparent, #191919);
+    }
+
+    .mod-detail-back {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        color: #fff;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        backdrop-filter: blur(8px);
+    }
+
+    .mod-detail-back:hover {
+        background: rgba(0,0,0,0.6);
+    }
+
+    .mod-detail-content {
+        position: relative;
+        padding: 0 48px 48px;
+        margin-top: -100px;
+        z-index: 5;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .mod-detail-main {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .mod-detail-icon {
+        width: 128px;
+        height: 128px;
+        border-radius: 16px;
+        background: #2b2b2b;
+        border: 4px solid #191919;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .mod-detail-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .mod-detail-info {
+        flex: 1;
+        padding-top: 40px;
+    }
+
+    .mod-detail-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .mod-detail-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: #888;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .mod-detail-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mod-detail-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .mod-install-btn {
+        background: #0078d4;
+        border: none;
+        color: #fff;
+        padding: 12px 32px;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s;
+    }
+
+    .mod-install-btn:hover {
+        background: #006cc1;
+    }
+
+    .mod-install-btn.installed {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+    }
+
+    .mod-install-btn.installed:hover {
+        background: #333;
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+    .mod-secondary-btn {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .mod-secondary-btn:hover {
+        background: #333;
+        border-color: #555;
+    }
+
+    /* Tabs */
+    .mod-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid #3d3d3d;
+        margin-bottom: 24px;
+    }
+
+    .mod-tab {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 14px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .mod-tab:hover {
+        color: #fff;
+    }
+
+    .mod-tab.active {
+        color: #fff;
+        border-bottom-color: #0078d4;
+    }
+
+    .mod-tab-content {
+        display: none;
+    }
+
+    .mod-tab-content.active {
+        display: block;
+    }
+
+    /* Description */
+    .mod-description {
+        font-size: 14px;
+        line-height: 1.7;
+        color: #ccc;
+    }
+
+    .mod-description h3 {
+        font-size: 18px;
+        margin: 24px 0 12px;
+        color: #fff;
+    }
+
+    .mod-description p {
+        margin-bottom: 16px;
+    }
+
+    /* Stats Cards */
+    .mod-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .mod-stat-card {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    .mod-stat-value {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .mod-stat-label {
+        font-size: 12px;
+        color: #888;
+    }
+
+    /* Version Compatibility */
+    .mod-versions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mod-version-tag {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 12px;
+        color: #ccc;
+    }
+
+    .mod-version-tag.current {
+        background: rgba(0, 120, 212, 0.15);
+        border-color: #0078d4;
+        color: #0078d4;
+    }
+
+    /* Screenshots */
+    .mod-screenshots {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+    }
+
+    .mod-screenshot {
+        width: 280px;
+        height: 160px;
+        border-radius: 8px;
+        background: #2b2b2b;
+        flex-shrink: 0;
+        object-fit: cover;
+    }
+
+    /* Loading state */
+    .mod-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        gap: 12px;
+        color: #888;
+    }
+</style>
+
+<div class="mod-detail-page" id="mod-detail-page">
+    <div class="mod-loading" id="mod-loading">
+        <i class="ph ph-spinner-gap" style="font-size: 24px; animation: spin 1s linear infinite;"></i>
+        <span>Cargando información del mod...</span>
+    </div>
+</div>
+
+<template id="mod-detail-template">
+    <div class="mod-detail-header" id="mod-header-gradient">
+        <button class="mod-detail-back" onclick="history.back()">
+            <i class="ph ph-arrow-left"></i>
+        </button>
+    </div>
+    
+    <div class="mod-detail-content">
+        <div class="mod-detail-main">
+            <div class="mod-detail-icon">
+                <img src="{iconUrl}" alt="{title}" onerror="this.src='/source/png/component.png'">
+            </div>
+            <div class="mod-detail-info">
+                <h1 class="mod-detail-title">{title}</h1>
+                <div class="mod-detail-meta">
+                    <span class="mod-detail-meta-item">
+                        <i class="ph ph-user"></i>
+                        {author}
+                    </span>
+                    <span class="mod-detail-meta-item">
+                        <i class="ph ph-download"></i>
+                        {downloads} descargas
+                    </span>
+                    <span class="mod-detail-meta-item">
+                        <i class="ph ph-calendar"></i>
+                        {lastUpdated}
+                    </span>
+                </div>
+                <div class="mod-detail-actions">
+                    <button class="mod-install-btn {installedClass}" id="install-btn" onclick="toggleInstall()">
+                        <i class="ph ph-{installIcon}"></i>
+                        {installText}
+                    </button>
+                    <button class="mod-secondary-btn" onclick="window.open('{projectUrl}', '_blank')">
+                        <i class="ph ph-globe"></i>
+                        Ver en Modrinth
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mod-stats">
+            <div class="mod-stat-card">
+                <div class="mod-stat-value">{downloads}</div>
+                <div class="mod-stat-label">Descargas</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-value">{followers}</div>
+                <div class="mod-stat-label">Seguidores</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-value">{versions}</div>
+                <div class="mod-stat-label">Versiones</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-value">{category}</div>
+                <div class="mod-stat-label">Categoría</div>
+            </div>
+        </div>
+
+        <div class="mod-tabs">
+            <button class="mod-tab active" onclick="showModTab('overview', this)">Descripción</button>
+            <button class="mod-tab" onclick="showModTab('versions', this)">Versiones</button>
+            <button class="mod-tab" onclick="showModTab('gallery', this)">Galería</button>
+        </div>
+
+        <div id="tab-overview" class="mod-tab-content active">
+            <div class="mod-description">
+                {description}
+            </div>
+        </div>
+
+        <div id="tab-versions" class="mod-tab-content">
+            <h3 style="margin-bottom: 16px;">Versiones compatibles de Minecraft</h3>
+            <div class="mod-versions" id="mc-versions">
+                {mcVersions}
+            </div>
+        </div>
+
+        <div id="tab-gallery" class="mod-tab-content">
+            <div class="mod-screenshots" id="screenshots">
+                {screenshots}
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    // Mod detail data (populated by parent or URL params)
+    let currentMod = null;
+    let isInstalled = false;
+    let serverName = '';
+    let serverLoader = '';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        app.checkAuth();
+        
+        // Get mod info from URL params or sessionStorage
+        const params = new URLSearchParams(window.location.search);
+        const modId = params.get('id');
+        serverName = params.get('server') || sessionStorage.getItem('currentServer') || '';
+        serverLoader = params.get('loader') || sessionStorage.getItem('currentLoader') || 'forge';
+        
+        if (modId) {
+            loadModDetails(modId);
+        } else if (sessionStorage.getItem('modDetail')) {
+            try {
+                currentMod = JSON.parse(sessionStorage.getItem('modDetail'));
+                renderModDetail(currentMod);
+            } catch (e) {
+                showError();
+            }
+        } else {
+            showError();
+        }
+    });
+
+    async function loadModDetails(modId) {
+        try {
+            const res = await fetch(`https://api.modrinth.com/v2/project/${modId}`);
+            if (!res.ok) throw new Error('Mod not found');
+            
+            currentMod = await res.json();
+            renderModDetail(currentMod);
+        } catch (e) {
+            console.error(e);
+            showError();
+        }
+    }
+
+    function renderModDetail(mod) {
+        const page = document.getElementById('mod-detail-page');
+        const template = document.getElementById('mod-detail-template').innerHTML;
+        
+        // Generate random gradient colors based on mod name
+        const colors = [
+            ['#6366f1', '#a855f7'],
+            ['#0078d4', '#00bcf2'],
+            ['#10b981', '#14b8a6'],
+            ['#f59e0b', '#f97316'],
+            ['#ef4444', '#ec4899']
+        ];
+        const colorPair = colors[mod.title.length % colors.length];
+        
+        // Format numbers
+        const downloads = formatNumber(mod.downloads || 0);
+        const followers = formatNumber(mod.followers || 0);
+        
+        // Format date
+        const lastUpdated = mod.updated ? new Date(mod.updated).toLocaleDateString('es-ES') : 'N/A';
+        
+        // Generate MC version tags
+        const mcVersions = (mod.game_versions || ['1.20.1', '1.19.4']).slice(0, 10).map(v => 
+            `<span class="mod-version-tag">${v}</span>`
+        ).join('');
+
+        // Generate screenshots
+        const screenshots = (mod.gallery || []).slice(0, 5).map(img => 
+            `<img src="${img.url}" class="mod-screenshot" alt="Screenshot">`
+        ).join('') || '<p style="color: #666;">No hay capturas disponibles</p>';
+
+        // Replace placeholders
+        let html = template
+            .replace(/{title}/g, mod.title || 'Unknown Mod')
+            .replace('{iconUrl}', mod.icon_url || '/source/png/component.png')
+            .replace('{author}', mod.author || 'Unknown')
+            .replace(/{downloads}/g, downloads)
+            .replace('{followers}', followers)
+            .replace('{versions}', (mod.game_versions || []).length)
+            .replace('{category}', (mod.categories || ['Mod'])[0])
+            .replace('{lastUpdated}', lastUpdated)
+            .replace('{description}', mod.body || mod.description || '<p>Sin descripción disponible.</p>')
+            .replace('{projectUrl}', `https://modrinth.com/mod/${mod.slug || mod.id}`)
+            .replace('{mcVersions}', mcVersions)
+            .replace('{screenshots}', screenshots)
+            .replace('{installedClass}', isInstalled ? 'installed' : '')
+            .replace('{installIcon}', isInstalled ? 'trash' : 'download')
+            .replace('{installText}', isInstalled ? 'Desinstalar' : 'Instalar');
+
+        page.innerHTML = html;
+        
+        // Set gradient via JS (avoids template syntax errors in style attribute)
+        const headerEl = document.getElementById('mod-header-gradient');
+        if (headerEl) {
+            headerEl.style.background = `linear-gradient(135deg, ${colorPair[0]} 0%, ${colorPair[1]} 100%)`;
+        }
+    }
+
+    function formatNumber(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+
+    function showModTab(tabId, btn) {
+        document.querySelectorAll('.mod-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.mod-tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    async function toggleInstall() {
+        const btn = document.getElementById('install-btn');
+        
+        if (isInstalled) {
+            // Uninstall
+            btn.innerHTML = '<i class="ph ph-spinner-gap" style="animation: spin 1s linear infinite;"></i> Desinstalando...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/servers/${serverName}/mods/${currentMod.slug}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    isInstalled = false;
+                    btn.className = 'mod-install-btn';
+                    btn.innerHTML = '<i class="ph ph-download"></i> Instalar';
+                    if (window.views && views.toast) {
+                        views.toast.show('Mod desinstalado correctamente', 'success');
+                    }
+                } else {
+                    throw new Error('Failed to uninstall');
+                }
+            } catch (e) {
+                btn.innerHTML = '<i class="ph ph-trash"></i> Desinstalar';
+                if (window.views && views.toast) {
+                    views.toast.show('Error al desinstalar', 'error');
+                }
+            }
+        } else {
+            // Install
+            btn.innerHTML = '<i class="ph ph-spinner-gap" style="animation: spin 1s linear infinite;"></i> Instalando...';
+            
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/servers/${serverName}/mods/install`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        slug: currentMod.slug,
+                        loader: serverLoader
+                    })
+                });
+                
+                if (res.ok) {
+                    isInstalled = true;
+                    btn.className = 'mod-install-btn installed';
+                    btn.innerHTML = '<i class="ph ph-trash"></i> Desinstalar';
+                    if (window.views && views.toast) {
+                        views.toast.show('Mod instalado correctamente', 'success');
+                    }
+                } else {
+                    throw new Error('Failed to install');
+                }
+            } catch (e) {
+                btn.innerHTML = '<i class="ph ph-download"></i> Instalar';
+                if (window.views && views.toast) {
+                    views.toast.show('Error al instalar', 'error');
+                }
+            }
+        }
+    }
+
+    function showError() {
+        document.getElementById('mod-detail-page').innerHTML = `
+            <div class="mod-loading">
+                <i class="ph ph-warning" style="font-size: 48px; color: #ef4444;"></i>
+                <div style="text-align: center;">
+                    <h3 style="margin-bottom: 8px;">Mod no encontrado</h3>
+                    <p style="color: #666; margin-bottom: 16px;">No se pudo cargar la información del mod</p>
+                    <button class="win-btn" onclick="history.back()">
+                        <i class="ph ph-arrow-left"></i> Volver
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+</script>
+
+<style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,729 @@
+{% extends "components/layout.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Windows Update Style */
+    .update-app {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background-color: #191919;
+        color: #fff;
+        padding: 40px 48px;
+        overflow-y: auto;
+    }
+
+    .update-header {
+        margin-bottom: 32px;
+    }
+
+    .update-header h1 {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+    }
+
+    .update-status-card {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .update-status-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+    }
+
+    .update-status-icon.success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+
+    .update-status-icon.warning {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+
+    .update-status-icon.info {
+        background: rgba(0, 120, 212, 0.15);
+        color: #0078d4;
+    }
+
+    .update-status-content {
+        flex: 1;
+    }
+
+    .update-status-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .update-status-desc {
+        color: #888;
+        font-size: 14px;
+    }
+
+    .update-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .update-section {
+        margin-bottom: 32px;
+    }
+
+    .update-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .version-card {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .version-card-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .version-card-header:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .version-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.05);
+    }
+
+    .version-icon img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .version-info {
+        flex: 1;
+    }
+
+    .version-name {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+
+    .version-meta {
+        font-size: 12px;
+        color: #888;
+    }
+
+    .version-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .version-status.ready {
+        color: #10b981;
+    }
+
+    .version-status.available {
+        color: #0078d4;
+    }
+
+    .version-details {
+        padding: 0 20px 16px 76px;
+        display: none;
+    }
+
+    .version-card.expanded .version-details {
+        display: block;
+    }
+
+    .version-card.expanded .version-card-header {
+        border-bottom: 1px solid #3d3d3d;
+    }
+
+    /* Progress Ring */
+    .progress-ring {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #3d3d3d;
+        border-top-color: #0078d4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Download Modal */
+    .download-modal-content {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        width: 500px;
+        max-width: 90%;
+    }
+
+    .download-tabs {
+        display: flex;
+        border-bottom: 1px solid #3d3d3d;
+        padding: 0 16px;
+    }
+
+    .download-tab {
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        font-size: 14px;
+        border-bottom: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .download-tab.active {
+        color: #fff;
+        border-bottom-color: #0078d4;
+    }
+
+    .download-tab img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .download-panel {
+        display: none;
+        padding: 24px;
+    }
+
+    .download-panel.active {
+        display: block;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-icon img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .stat-info h3 {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stat-info p {
+        font-size: 12px;
+        color: #888;
+        margin: 0;
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .filter-tab {
+        padding: 8px 16px;
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        color: #888;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-tab:hover {
+        background: #333;
+    }
+
+    .filter-tab.active {
+        background: rgba(0, 120, 212, 0.15);
+        border-color: #0078d4;
+        color: #0078d4;
+    }
+
+    .filter-tab img {
+        width: 16px;
+        height: 16px;
+    }
+</style>
+
+<div class="update-app">
+    <!-- Main Status Card -->
+    <div class="update-status-card" id="main-status">
+        <div class="update-status-icon success">
+            <i class="ph ph-check-circle"></i>
+        </div>
+        <div class="update-status-content">
+            <div class="update-status-title">Estás al día</div>
+            <div class="update-status-desc">Última comprobación: <span id="last-check">Justo ahora</span></div>
+        </div>
+        <div class="update-actions">
+            <button class="win-btn win-btn-primary" onclick="openDownloadModal()">
+                <i class="ph ph-download"></i>
+                Descargar versiones
+            </button>
+            <button class="win-btn" onclick="checkForUpdates()">
+                <i class="ph ph-arrow-clockwise"></i>
+                Buscar actualizaciones
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15);">
+                <img src="/source/png/vanilla.png">
+            </div>
+            <div class="stat-info">
+                <h3 id="stat-vanilla">0</h3>
+                <p>Versiones Vanilla</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15);">
+                <img src="/source/png/paper.png">
+            </div>
+            <div class="stat-info">
+                <h3 id="stat-paper">0</h3>
+                <p>Versiones Paper</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15);">
+                <img src="/source/png/forge.png">
+            </div>
+            <div class="stat-info">
+                <h3 id="stat-forge">0</h3>
+                <p>Versiones Forge</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15);">
+                <img src="/source/png/fabric.png">
+            </div>
+            <div class="stat-info">
+                <h3 id="stat-fabric">0</h3>
+                <p>Versiones Fabric</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Installed Versions -->
+    <div class="update-section">
+        <div class="update-section-title">
+            <i class="ph ph-package"></i>
+            Versiones instaladas
+        </div>
+
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterVersions('all', this)">Todas</button>
+            <button class="filter-tab" onclick="filterVersions('vanilla', this)">
+                <img src="/source/png/vanilla.png"> Vanilla
+            </button>
+            <button class="filter-tab" onclick="filterVersions('paper', this)">
+                <img src="/source/png/paper.png"> Paper
+            </button>
+            <button class="filter-tab" onclick="filterVersions('forge', this)">
+                <img src="/source/png/forge.png"> Forge
+            </button>
+            <button class="filter-tab" onclick="filterVersions('fabric', this)">
+                <img src="/source/png/fabric.png"> Fabric
+            </button>
+        </div>
+
+        <div id="installed-versions-list">
+            <!-- Loading placeholder -->
+            <div class="version-card">
+                <div class="version-card-header">
+                    <div class="version-icon">
+                        <div class="progress-ring"></div>
+                    </div>
+                    <div class="version-info">
+                        <div class="version-name">Cargando versiones...</div>
+                        <div class="version-meta">Por favor espera</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Modal -->
+<div id="download-modal" class="modal hidden">
+    <div class="modal-container download-modal-content">
+        <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid #3d3d3d;">
+            <h2 style="font-size: 18px; margin: 0;">Descargar nueva versión</h2>
+            <button class="modal-close" onclick="closeDownloadModal()" style="background: none; border: none; color: #888; cursor: pointer; font-size: 20px;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        
+        <div class="download-tabs">
+            <button class="download-tab active" onclick="openDownloadTab(event, 'dl-vanilla')">
+                <img src="/source/png/vanilla.png"> Vanilla
+            </button>
+            <button class="download-tab" onclick="openDownloadTab(event, 'dl-paper')">
+                <img src="/source/png/paper.png"> Paper
+            </button>
+            <button class="download-tab" onclick="openDownloadTab(event, 'dl-forge')">
+                <img src="/source/png/forge.png"> Forge
+            </button>
+            <button class="download-tab" onclick="openDownloadTab(event, 'dl-fabric')">
+                <img src="/source/png/fabric.png"> Fabric
+            </button>
+        </div>
+
+        <div id="dl-vanilla" class="download-panel active">
+            <div class="form-group">
+                <label class="form-label">Selecciona versión de Minecraft</label>
+                <select id="vanilla-version-select" class="form-input" style="background: #1a1a1a; border: 1px solid #3d3d3d;">
+                    <option value="" disabled selected>Cargando versiones...</option>
+                </select>
+            </div>
+            <button class="win-btn win-btn-primary" style="width: 100%; margin-top: 16px;" onclick="downloadVersion('VANILLA')">
+                <i class="ph ph-download"></i> Descargar Vanilla
+            </button>
+        </div>
+
+        <div id="dl-paper" class="download-panel">
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #f59e0b;">
+                <i class="ph ph-info"></i> Paper es un fork de alto rendimiento de Spigot (recomendado para la mayoría de servidores).
+            </div>
+            <div class="form-group">
+                <label class="form-label">Selecciona versión de Minecraft</label>
+                <select id="paper-version-select" class="form-input" style="background: #1a1a1a; border: 1px solid #3d3d3d;">
+                    <option value="" disabled selected>Cargando versiones...</option>
+                </select>
+            </div>
+            <button class="win-btn win-btn-primary" style="width: 100%; margin-top: 16px;" onclick="downloadVersion('PAPER')">
+                <i class="ph ph-download"></i> Descargar Paper
+            </button>
+        </div>
+
+        <div id="dl-forge" class="download-panel">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #ef4444;">
+                <i class="ph ph-warning"></i> Forge es requerido para la mayoría de mods. La instalación puede tomar un momento.
+            </div>
+            <div class="form-group">
+                <label class="form-label">Selecciona versión de Minecraft</label>
+                <select id="forge-version-select" class="form-input" style="background: #1a1a1a; border: 1px solid #3d3d3d;">
+                    <option value="" disabled selected>Cargando versiones...</option>
+                </select>
+            </div>
+            <button class="win-btn win-btn-primary" style="width: 100%; margin-top: 16px;" onclick="downloadVersion('FORGE')">
+                <i class="ph ph-download"></i> Descargar Forge
+            </button>
+        </div>
+
+        <div id="dl-fabric" class="download-panel">
+            <div class="form-group">
+                <label class="form-label">Selecciona versión de Minecraft</label>
+                <select id="fabric-version-select" class="form-input" style="background: #1a1a1a; border: 1px solid #3d3d3d;">
+                    <option value="" disabled selected>Cargando versiones...</option>
+                </select>
+            </div>
+            <button class="win-btn win-btn-primary" style="width: 100%; margin-top: 16px;" onclick="downloadVersion('FABRIC')">
+                <i class="ph ph-download"></i> Descargar Fabric
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let installedVersionsCache = [];
+    let currentFilter = 'all';
+
+    document.addEventListener("DOMContentLoaded", () => {
+        app.checkAuth();
+        loadVersionStats();
+        loadInstalledVersions();
+        loadRemoteVersions('VANILLA');
+        loadRemoteVersions('PAPER');
+        loadRemoteVersions('FORGE');
+        loadRemoteVersions('FABRIC');
+    });
+
+    function getAuthHeaders() {
+        const token = localStorage.getItem("token");
+        return {
+            'Authorization': `Bearer ${token}`, 
+            'Content-Type': 'application/json'
+        };
+    }
+
+    function openDownloadModal() {
+        document.getElementById('download-modal').classList.remove('hidden');
+    }
+    
+    function closeDownloadModal() {
+        document.getElementById('download-modal').classList.add('hidden');
+    }
+
+    function openDownloadTab(evt, tabId) {
+        document.querySelectorAll('.download-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.download-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        evt.currentTarget.classList.add('active');
+    }
+
+    async function loadVersionStats() {
+        try {
+            const res = await fetch('/api/versions/stats', { headers: getAuthHeaders() });
+            if (res.ok) {
+                const stats = await res.json();
+                document.getElementById('stat-vanilla').textContent = stats.vanilla || 0;
+                document.getElementById('stat-paper').textContent = stats.paper || 0;
+                document.getElementById('stat-forge').textContent = stats.forge || 0;
+                document.getElementById('stat-fabric').textContent = stats.fabric || 0;
+            }
+        } catch (e) {
+            console.error("Failed to load version stats", e);
+        }
+    }
+
+    async function loadRemoteVersions(type) {
+        const selectId = `${type.toLowerCase()}-version-select`;
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        try {
+            const res = await fetch(`/api/versions/remote/${type}`, { headers: getAuthHeaders() });
+            if (res.status === 401) return;
+
+            const data = await res.json();
+            
+            if (data.versions) {
+                select.innerHTML = '<option value="" disabled selected>Seleccionar versión</option>';
+                data.versions.forEach(ver => {
+                    const opt = document.createElement('option');
+                    opt.value = ver;
+                    opt.textContent = ver;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = '<option disabled>Error al cargar</option>';
+            }
+        } catch (e) {
+            console.error(e);
+            select.innerHTML = '<option disabled>Error al cargar</option>';
+        }
+    }
+
+    async function downloadVersion(typeU) {
+        const type = typeU.charAt(0).toUpperCase() + typeU.slice(1).toLowerCase();
+        const selectId = `${type.toLowerCase()}-version-select`;
+        const select = document.getElementById(selectId);
+        const version = select.value;
+        
+        if (!version) {
+            alert("Por favor selecciona una versión");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/versions/download', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    loader_type: type.toUpperCase(),
+                    mc_version: version,
+                    loader_version_id: 'latest' 
+                })
+            });
+            
+            if (res.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const data = await res.json();
+            if (res.ok) {
+                if (window.views && window.views.toast) {
+                    window.views.toast.show(`Descarga iniciada para ${type} ${version}`, 'success');
+                }
+                closeDownloadModal();
+            } else {
+                throw new Error(data.detail || "Descarga fallida");
+            }
+        } catch (e) {
+            if (window.views && window.views.toast) {
+                window.views.toast.show(`Error: ${e.message}`, 'error');
+            } else {
+                alert("Error: " + e.message);
+            }
+        }
+    }
+
+    function filterVersions(type, btn) {
+        currentFilter = type;
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        renderInstalledVersions();
+    }
+
+    function renderInstalledVersions() {
+        const container = document.getElementById('installed-versions-list');
+        
+        const filtered = currentFilter === 'all' 
+            ? installedVersionsCache 
+            : installedVersionsCache.filter(v => v.loader_type.toLowerCase() === currentFilter);
+            
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="version-card">
+                    <div class="version-card-header">
+                        <div class="version-icon">
+                            <i class="ph ph-package" style="font-size: 20px; color: #666;"></i>
+                        </div>
+                        <div class="version-info">
+                            <div class="version-name" style="color: #888;">No se encontraron versiones</div>
+                            <div class="version-meta">Descarga una versión para comenzar</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = filtered.map(v => {
+            const loaderIcon = v.loader_type.toLowerCase();
+            const sizeMB = (v.file_size / (1024*1024)).toFixed(2);
+            
+            return `
+                <div class="version-card" onclick="this.classList.toggle('expanded')">
+                    <div class="version-card-header">
+                        <div class="version-icon">
+                            <img src="/source/png/${loaderIcon}.png" onerror="this.src='/source/png/version.png'">
+                        </div>
+                        <div class="version-info">
+                            <div class="version-name">${v.loader_type} ${v.mc_version}</div>
+                            <div class="version-meta">Tamaño: ${sizeMB} MB • Loader: ${v.loader_version || 'N/A'}</div>
+                        </div>
+                        <div class="version-status ready">
+                            <i class="ph ph-check-circle"></i>
+                            Listo
+                        </div>
+                        <i class="ph ph-caret-down" style="color: #666;"></i>
+                    </div>
+                    <div class="version-details">
+                        <p style="font-size: 13px; color: #888; margin-bottom: 12px;">
+                            Esta versión está lista para ser utilizada en tus servidores.
+                        </p>
+                        <button class="win-btn" style="font-size: 12px; padding: 4px 12px;">
+                            <i class="ph ph-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadInstalledVersions() {
+        try {
+            const res = await fetch('/api/versions', { headers: getAuthHeaders() });
+            if (res.status === 401) return;
+            
+            installedVersionsCache = await res.json();
+            renderInstalledVersions();
+            
+        } catch (e) {
+            console.error(e);
+            document.getElementById('installed-versions-list').innerHTML = `
+                <div class="version-card">
+                    <div class="version-card-header">
+                        <div class="version-icon">
+                            <i class="ph ph-warning" style="font-size: 20px; color: #ef4444;"></i>
+                        </div>
+                        <div class="version-info">
+                            <div class="version-name" style="color: #ef4444;">Error al cargar</div>
+                            <div class="version-meta">No se pudieron cargar las versiones instaladas</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function checkForUpdates() {
+        const statusCard = document.getElementById('main-status');
+        const icon = statusCard.querySelector('.update-status-icon');
+        icon.innerHTML = '<div class="progress-ring"></div>';
+        icon.className = 'update-status-icon info';
+        statusCard.querySelector('.update-status-title').textContent = 'Buscando actualizaciones...';
+        
+        setTimeout(() => {
+            icon.innerHTML = '<i class="ph ph-check-circle"></i>';
+            icon.className = 'update-status-icon success';
+            statusCard.querySelector('.update-status-title').textContent = 'Estás al día';
+            document.getElementById('last-check').textContent = 'Justo ahora';
+        }, 2000);
+    }
+</script>
+{% endblock %}

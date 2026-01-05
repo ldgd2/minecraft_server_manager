@@ -1,0 +1,1092 @@
+{% extends "components/layout.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Task Manager Windows 11 Style */
+    .tm-app {
+        display: flex;
+        height: 100%;
+        background-color: #191919;
+        color: #fff;
+    }
+
+    .tm-sidebar {
+        width: 50px;
+        background-color: #202020;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 12px;
+        border-right: 1px solid #2d2d2d;
+        transition: width 0.2s ease;
+    }
+    
+    .tm-sidebar:hover {
+        width: 220px;
+        align-items: flex-start;
+        padding-left: 8px;
+    }
+
+    .tm-nav-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        color: #aaa;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+        position: relative;
+    }
+    
+    .tm-sidebar:hover .tm-nav-btn {
+        width: calc(100% - 8px);
+        justify-content: flex-start;
+        padding-left: 12px;
+    }
+
+    .tm-nav-btn i {
+        font-size: 18px;
+        min-width: 24px;
+        text-align: center;
+    }
+
+    .tm-nav-btn span {
+        opacity: 0;
+        margin-left: 12px;
+        font-size: 13px;
+        transition: opacity 0.15s;
+    }
+
+    .tm-sidebar:hover .tm-nav-btn span {
+        opacity: 1;
+    }
+
+    .tm-nav-btn:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+        color: #fff;
+    }
+
+    .tm-nav-btn.active {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: #fff;
+    }
+
+    .tm-nav-btn.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        width: 3px;
+        height: 20px;
+        background: #0078d4;
+        border-radius: 0 2px 2px 0;
+    }
+
+    .tm-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .tm-header {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid #2d2d2d;
+        background: #1f1f1f;
+    }
+
+    .tm-header h1 {
+        font-size: 18px;
+        font-weight: 500;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .tm-header-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .tm-grid-header {
+        display: grid;
+        grid-template-columns: 40px 2fr 100px 80px 80px 80px 100px 140px;
+        padding: 10px 16px;
+        font-size: 12px;
+        color: #888;
+        border-bottom: 1px solid #2d2d2d;
+        background: #1a1a1a;
+    }
+
+    .tm-grid-header > div {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .tm-grid-header > div:hover {
+        color: #fff;
+    }
+
+    .tm-row {
+        display: grid;
+        grid-template-columns: 40px 2fr 100px 80px 80px 80px 100px 140px;
+        padding: 12px 16px;
+        align-items: center;
+        font-size: 13px;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+        cursor: pointer;
+        transition: background 0.1s;
+    }
+
+    .tm-row:hover {
+        background-color: rgba(255,255,255,0.04);
+    }
+
+    .tm-row.selected {
+        background-color: rgba(0, 120, 212, 0.15);
+    }
+
+    .tm-row-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tm-row-icon img {
+        width: 20px;
+        height: 20px;
+    }
+
+    .tm-row-name {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tm-row-name-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tm-row-name-title {
+        font-weight: 500;
+    }
+
+    .tm-row-name-sub {
+        font-size: 11px;
+        color: #666;
+    }
+
+    .tm-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tm-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .tm-status-dot.online { background: #16c60c; box-shadow: 0 0 8px rgba(22, 198, 12, 0.5); }
+    .tm-status-dot.offline { background: #666; }
+    .tm-status-dot.starting { background: #f59e0b; animation: pulse 1s infinite; }
+    .tm-status-dot.stopping { background: #ef4444; animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+
+    .tm-metric {
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+    }
+
+    .tm-metric.high { color: #ef4444; }
+    .tm-metric.medium { color: #f59e0b; }
+    .tm-metric.low { color: #16c60c; }
+
+    .tm-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .tm-action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: 1px solid #3d3d3d;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        transition: all 0.15s;
+    }
+
+    .tm-action-btn:hover {
+        background: #333;
+        color: #fff;
+        border-color: #555;
+    }
+
+    .tm-action-btn.start:hover { color: #16c60c; border-color: #16c60c; }
+    .tm-action-btn.stop:hover { color: #ef4444; border-color: #ef4444; }
+
+    .tm-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        gap: 16px;
+    }
+
+    .tm-empty i {
+        font-size: 48px;
+    }
+
+    /* Performance Tab */
+    .perf-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .perf-sidebar {
+        width: 200px;
+        background: #1a1a1a;
+        border-right: 1px solid #2d2d2d;
+        overflow-y: auto;
+    }
+
+    .perf-item {
+        padding: 16px;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .perf-item:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .perf-item.active {
+        background: rgba(255,255,255,0.06);
+        border-left-color: #0078d4;
+    }
+
+    .perf-item-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .perf-item-value {
+        font-size: 24px;
+        font-weight: 300;
+        margin-bottom: 2px;
+    }
+
+    .perf-item-sub {
+        font-size: 11px;
+        color: #666;
+    }
+
+    .perf-main {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .perf-chart-container {
+        background: #1e1e1e;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        height: 200px;
+        margin-bottom: 24px;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        padding: 8px;
+        gap: 2px;
+    }
+
+    .chart-bar {
+        flex: 1;
+        background: linear-gradient(180deg, #0078d4 0%, rgba(0,120,212,0.3) 100%);
+        min-width: 4px;
+        border-radius: 2px 2px 0 0;
+        transition: height 0.3s ease;
+    }
+
+    .perf-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    .perf-stat {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .perf-stat-label {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 4px;
+    }
+
+    .perf-stat-value {
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    /* Create Server Modal */
+    .create-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+    }
+
+    .create-modal.hidden {
+        display: none;
+    }
+
+    .create-modal-content {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        width: 500px;
+        max-width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .create-modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #3d3d3d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .create-modal-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .create-modal-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        color: #ccc;
+        margin-bottom: 6px;
+    }
+
+    .form-input {
+        width: 100%;
+        background: #1a1a1a;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        padding: 10px 12px;
+        color: #fff;
+        font-size: 14px;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #0078d4;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .create-modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid #3d3d3d;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    /* Selected Server Info */
+    .selected-server-banner {
+        background: rgba(0, 120, 212, 0.1);
+        border: 1px solid rgba(0, 120, 212, 0.3);
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin: 12px 16px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .selected-server-banner.visible {
+        display: flex;
+    }
+
+    .selected-server-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .selected-server-info img {
+        width: 32px;
+        height: 32px;
+    }
+
+    .selected-server-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="tm-app">
+    <!-- Task Manager Sidebar -->
+    <div class="tm-sidebar">
+        <button class="tm-nav-btn active" onclick="showTab('processes', this)" title="Procesos">
+            <i class="ph ph-list-dashes"></i>
+            <span>Procesos</span>
+        </button>
+        <button class="tm-nav-btn" onclick="showTab('performance', this)" title="Rendimiento">
+            <i class="ph ph-chart-line-up"></i>
+            <span>Rendimiento</span>
+        </button>
+        <button class="tm-nav-btn" onclick="showTab('history', this)" title="Historial">
+            <i class="ph ph-clock-counter-clockwise"></i>
+            <span>Historial</span>
+        </button>
+        <div style="flex: 1"></div>
+        <button class="tm-nav-btn" onclick="window.location.href='/settings'" title="Configuración">
+            <i class="ph ph-gear"></i>
+            <span>Configuración</span>
+        </button>
+    </div>
+
+    <div class="tm-main">
+        <!-- Processes Tab -->
+        <div id="tab-processes" class="flex-1 flex flex-col">
+            <div class="tm-header">
+                <h1>
+                    <i class="ph ph-hard-drives" style="color: #0078d4;"></i>
+                    Administrador de Servidores
+                </h1>
+                <div class="tm-header-actions">
+                    <button class="win-btn win-btn-primary" onclick="openCreateModal()">
+                        <i class="ph ph-plus"></i> Nuevo servidor
+                    </button>
+                    <button class="win-btn" onclick="refreshServers()">
+                        <i class="ph ph-arrow-clockwise"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selected Server Banner -->
+            <div class="selected-server-banner" id="selected-banner">
+                <div class="selected-server-info">
+                    <img id="selected-icon" src="/source/png/server.png">
+                    <div>
+                        <strong id="selected-name">Servidor</strong>
+                        <span id="selected-status" style="font-size: 12px; color: #888;"></span>
+                    </div>
+                </div>
+                <div class="selected-server-actions">
+                    <button class="win-btn" onclick="controlSelectedServer('start')">
+                        <i class="ph ph-play"></i> Iniciar
+                    </button>
+                    <button class="win-btn" onclick="controlSelectedServer('stop')">
+                        <i class="ph ph-stop"></i> Detener
+                    </button>
+                    <button class="win-btn" onclick="controlSelectedServer('restart')">
+                        <i class="ph ph-arrow-clockwise"></i> Reiniciar
+                    </button>
+                    <button class="win-btn win-btn-primary" onclick="openSelectedServer()">
+                        <i class="ph ph-arrow-square-out"></i> Abrir
+                    </button>
+                </div>
+            </div>
+
+            <div class="tm-grid-header">
+                <div></div>
+                <div>Nombre <i class="ph ph-caret-down"></i></div>
+                <div>Estado</div>
+                <div>CPU</div>
+                <div>Memoria</div>
+                <div>Disco</div>
+                <div>Jugadores</div>
+                <div>Acciones</div>
+            </div>
+
+            <div class="overflow-y-auto flex-1" id="server-list-container">
+                <div class="tm-empty">
+                    <i class="ph ph-spinner-gap" style="animation: spin 1s linear infinite;"></i>
+                    <span>Cargando servidores...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="tab-performance" class="hidden flex-1 flex flex-col">
+            <div class="tm-header">
+                <h1>
+                    <i class="ph ph-chart-line-up" style="color: #0078d4;"></i>
+                    Rendimiento del Sistema
+                </h1>
+            </div>
+            <div class="perf-container">
+                <div class="perf-sidebar">
+                    <div class="perf-item active" onclick="showPerfMetric('cpu', this)">
+                        <div class="perf-item-title">CPU</div>
+                        <div class="perf-item-value" id="perf-cpu">0%</div>
+                        <div class="perf-item-sub">Sistema</div>
+                    </div>
+                    <div class="perf-item" onclick="showPerfMetric('memory', this)">
+                        <div class="perf-item-title">Memoria</div>
+                        <div class="perf-item-value" id="perf-mem">0%</div>
+                        <div class="perf-item-sub" id="perf-mem-detail">0/0 GB</div>
+                    </div>
+                    <div class="perf-item" onclick="showPerfMetric('disk', this)">
+                        <div class="perf-item-title">Disco</div>
+                        <div class="perf-item-value" id="perf-disk">0%</div>
+                        <div class="perf-item-sub">Uso</div>
+                    </div>
+                </div>
+                <div class="perf-main">
+                    <h2 style="font-size: 24px; font-weight: 300; margin-bottom: 8px;" id="perf-title">CPU</h2>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 20px;" id="perf-subtitle">Uso del sistema</div>
+                    
+                    <div class="perf-chart-container" id="perf-chart">
+                        <!-- Chart bars will be rendered here -->
+                    </div>
+
+                    <div class="perf-stats-grid">
+                        <div class="perf-stat">
+                            <div class="perf-stat-label">Uso actual</div>
+                            <div class="perf-stat-value" id="stat-current">0%</div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-stat-label">Servidores activos</div>
+                            <div class="perf-stat-value" id="stat-processes">0</div>
+                        </div>
+                        <div class="perf-stat">
+                            <div class="perf-stat-label">Tiempo activo</div>
+                            <div class="perf-stat-value" id="stat-uptime">0:00:00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="tab-history" class="hidden flex-1 flex flex-col">
+            <div class="tm-header">
+                <h1>
+                    <i class="ph ph-clock-counter-clockwise" style="color: #0078d4;"></i>
+                    Historial de actividad
+                </h1>
+            </div>
+            <div class="tm-empty">
+                <i class="ph ph-clock-counter-clockwise"></i>
+                <span>No hay historial disponible</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Server Modal -->
+<div id="create-modal" class="create-modal hidden">
+    <div class="create-modal-content">
+        <div class="create-modal-header">
+            <h2><i class="ph ph-plus-circle"></i> Crear Nuevo Servidor</h2>
+            <button onclick="closeCreateModal()" style="background: none; border: none; color: #888; cursor: pointer; font-size: 20px;">
+                <i class="ph ph-x"></i>
+            </button>
+        </div>
+        <div class="create-modal-body">
+            <div class="form-group">
+                <label class="form-label">Nombre del servidor *</label>
+                <input type="text" id="server-name" class="form-input" placeholder="Mi Servidor">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Tipo de servidor</label>
+                    <select id="server-type" class="form-input" onchange="updateVersionOptions()">
+                        <option value="VANILLA">Vanilla</option>
+                        <option value="PAPER">Paper (Plugins)</option>
+                        <option value="FORGE">Forge (Mods)</option>
+                        <option value="FABRIC">Fabric (Mods)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Versión de Minecraft</label>
+                    <select id="server-version" class="form-input">
+                        <option value="">Cargando...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Puerto</label>
+                    <input type="number" id="server-port" class="form-input" value="25565" min="1024" max="65535">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Memoria RAM (GB)</label>
+                    <input type="number" id="server-ram" class="form-input" value="4" min="1" max="32">
+                </div>
+            </div>
+
+            <div style="background: rgba(0,120,212,0.1); border: 1px solid rgba(0,120,212,0.3); border-radius: 6px; padding: 12px; font-size: 13px; color: #0078d4;">
+                <i class="ph ph-info"></i> El servidor se configurará con los valores predeterminados. Puedes modificarlos después.
+            </div>
+        </div>
+        <div class="create-modal-footer">
+            <button class="win-btn" onclick="closeCreateModal()">Cancelar</button>
+            <button class="win-btn win-btn-primary" onclick="createServer()">
+                <i class="ph ph-rocket-launch"></i> Crear servidor
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global state
+    let serversCache = [];
+    let selectedServerName = null;
+    let selectedServerData = null;
+    let perfHistory = { cpu: [], memory: [], disk: [] };
+    let currentPerfMetric = 'cpu';
+    let refreshInterval = null;
+    let perfInterval = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (typeof app !== 'undefined') {
+            app.checkAuth();
+        }
+        loadServers();
+        startAutoRefresh();
+        loadVersionOptions();
+        initPerfChart();
+    });
+
+    // Tab navigation
+    function showTab(tabId, btn) {
+        document.querySelectorAll('.tm-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.getElementById('tab-processes').classList.add('hidden');
+        document.getElementById('tab-performance').classList.add('hidden');
+        document.getElementById('tab-history').classList.add('hidden');
+        
+        document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+    }
+
+    // Load servers with real data
+    async function loadServers() {
+        const container = document.getElementById('server-list-container');
+        
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/servers', { 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            
+            if (res.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            serversCache = await res.json();
+            
+            if (serversCache.length === 0) {
+                container.innerHTML = `
+                    <div class="tm-empty">
+                        <i class="ph ph-hard-drives"></i>
+                        <span>No hay servidores</span>
+                        <p style="color: #666; font-size: 13px;">Crea tu primer servidor para comenzar</p>
+                        <button class="win-btn win-btn-primary" onclick="openCreateModal()">
+                            <i class="ph ph-plus"></i> Crear servidor
+                        </button>
+                    </div>
+                `;
+                document.getElementById('stat-processes').textContent = '0';
+                return;
+            }
+
+            renderServerList();
+            
+            // Update stats
+            const onlineCount = serversCache.filter(s => s.status === 'ONLINE').length;
+            document.getElementById('stat-processes').textContent = onlineCount;
+            
+        } catch (e) {
+            console.error('Load servers error:', e);
+            container.innerHTML = `
+                <div class="tm-empty">
+                    <i class="ph ph-warning" style="color: #ef4444;"></i>
+                    <span>Error al cargar servidores</span>
+                    <button class="win-btn" onclick="loadServers()">Reintentar</button>
+                </div>
+            `;
+        }
+    }
+
+    function renderServerList() {
+        const container = document.getElementById('server-list-container');
+        
+        container.innerHTML = serversCache.map(s => {
+            const statusClass = s.status ? s.status.toLowerCase() : 'offline';
+            const statusText = {
+                'online': 'En ejecución',
+                'offline': 'Detenido',
+                'starting': 'Iniciando',
+                'stopping': 'Deteniendo'
+            }[statusClass] || 'Desconocido';
+
+            const modLoader = (s.mod_loader || 'vanilla').toLowerCase();
+            
+            // Use real metrics from API (match model field names)
+            const cpu = s.cpu_usage || 0;
+            const memMB = s.ram_usage || 0;  // Model uses ram_usage
+            const memGB = (memMB / 1024).toFixed(1);
+            const disk = s.disk_usage || 0;
+            const players = s.current_players || 0;  // Model uses current_players
+            const maxPlayers = s.max_players || 20;
+
+            const cpuClass = cpu > 80 ? 'high' : cpu > 50 ? 'medium' : '';
+            const memClass = memMB > 6000 ? 'high' : memMB > 4000 ? 'medium' : '';
+            const isSelected = selectedServerName === s.name ? 'selected' : '';
+
+            return `
+                <div class="tm-row ${isSelected}" data-server="${s.name}" onclick="selectServer('${s.name}')" ondblclick="openServer('${s.name}')">
+                    <div class="tm-row-icon">
+                        <img src="/source/png/${modLoader}.png" onerror="this.src='/source/png/server.png'">
+                    </div>
+                    <div class="tm-row-name">
+                        <div class="tm-row-name-text">
+                            <span class="tm-row-name-title">${s.name}</span>
+                            <span class="tm-row-name-sub">${s.version || '1.21.4'} • ${s.mod_loader || 'Vanilla'}</span>
+                        </div>
+                    </div>
+                    <div class="tm-status">
+                        <div class="tm-status-dot ${statusClass}"></div>
+                        <span>${statusText}</span>
+                    </div>
+                    <div class="tm-metric ${cpuClass}">${cpu}%</div>
+                    <div class="tm-metric ${memClass}">${memGB} GB</div>
+                    <div class="tm-metric">${disk} MB/s</div>
+                    <div class="tm-metric">${players}/${maxPlayers}</div>
+                    <div class="tm-actions">
+                        <button class="tm-action-btn start" onclick="event.stopPropagation(); controlServer('${s.name}', 'start')" title="Iniciar">
+                            <i class="ph ph-play"></i>
+                        </button>
+                        <button class="tm-action-btn stop" onclick="event.stopPropagation(); controlServer('${s.name}', 'stop')" title="Detener">
+                            <i class="ph ph-stop"></i>
+                        </button>
+                        <button class="tm-action-btn" onclick="event.stopPropagation(); openServer('${s.name}')" title="Abrir">
+                            <i class="ph ph-arrow-square-out"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function selectServer(name) {
+        selectedServerName = name;
+        selectedServerData = serversCache.find(s => s.name === name);
+        
+        // Update visual selection
+        document.querySelectorAll('.tm-row').forEach(r => r.classList.remove('selected'));
+        document.querySelector(`.tm-row[data-server="${name}"]`)?.classList.add('selected');
+        
+        // Show banner
+        const banner = document.getElementById('selected-banner');
+        banner.classList.add('visible');
+        
+        document.getElementById('selected-name').textContent = name;
+        document.getElementById('selected-status').textContent = ` • ${selectedServerData?.status || 'Desconocido'}`;
+        
+        const loader = (selectedServerData?.mod_loader || 'vanilla').toLowerCase();
+        document.getElementById('selected-icon').src = `/source/png/${loader}.png`;
+    }
+
+    function openServer(name) {
+        window.location.href = `/server/${name}`;
+    }
+
+    function openSelectedServer() {
+        if (selectedServerName) {
+            openServer(selectedServerName);
+        }
+    }
+
+    async function controlServer(name, action) {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/servers/${name}/control/${action}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+                // Show feedback
+                if (typeof views !== 'undefined' && views.toast) {
+                    views.toast.show(`Servidor ${name}: ${action}`, 'success');
+                }
+                setTimeout(loadServers, 1500);
+            } else {
+                const err = await res.json();
+                if (typeof views !== 'undefined' && views.toast) {
+                    views.toast.show(err.detail || 'Error', 'error');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function controlSelectedServer(action) {
+        if (selectedServerName) {
+            controlServer(selectedServerName, action);
+        }
+    }
+
+    function refreshServers() {
+        loadServers();
+    }
+
+    // Auto-refresh servers every 5 seconds
+    function startAutoRefresh() {
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(loadServers, 5000);
+        
+        if (perfInterval) clearInterval(perfInterval);
+        perfInterval = setInterval(updatePerformance, 2000);
+        updatePerformance();
+    }
+
+    // Performance monitoring
+    function initPerfChart() {
+        const chart = document.getElementById('perf-chart');
+        chart.innerHTML = '';
+        for (let i = 0; i < 60; i++) {
+            perfHistory.cpu.push(0);
+            perfHistory.memory.push(0);
+            perfHistory.disk.push(0);
+            const bar = document.createElement('div');
+            bar.className = 'chart-bar';
+            bar.style.height = '0%';
+            chart.appendChild(bar);
+        }
+    }
+
+    async function updatePerformance() {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/system/stats', { 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            
+            if (res.ok) {
+                const stats = await res.json();
+                
+                const cpu = stats.cpu || 0;
+                const memPercent = stats.memory_total ? Math.round((stats.memory_used / stats.memory_total) * 100) : 0;
+                const disk = stats.disk || 0;
+                
+                // Update sidebar
+                document.getElementById('perf-cpu').textContent = `${cpu}%`;
+                document.getElementById('perf-mem').textContent = `${memPercent}%`;
+                document.getElementById('perf-mem-detail').textContent = `${((stats.memory_used || 0) / 1024).toFixed(1)}/${((stats.memory_total || 0) / 1024).toFixed(1)} GB`;
+                document.getElementById('perf-disk').textContent = `${disk}%`;
+                
+                // Update history
+                perfHistory.cpu.push(cpu);
+                perfHistory.cpu.shift();
+                perfHistory.memory.push(memPercent);
+                perfHistory.memory.shift();
+                perfHistory.disk.push(disk);
+                perfHistory.disk.shift();
+                
+                // Update chart
+                updatePerfChart();
+                
+                // Update current stat
+                const currentVal = perfHistory[currentPerfMetric][perfHistory[currentPerfMetric].length - 1];
+                document.getElementById('stat-current').textContent = `${currentVal}%`;
+                
+                // Uptime
+                if (stats.uptime) {
+                    const h = Math.floor(stats.uptime / 3600);
+                    const m = Math.floor((stats.uptime % 3600) / 60);
+                    const s = stats.uptime % 60;
+                    document.getElementById('stat-uptime').textContent = `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                }
+            }
+        } catch (e) {
+            // Silently fail
+        }
+    }
+
+    function showPerfMetric(metric, btn) {
+        currentPerfMetric = metric;
+        document.querySelectorAll('.perf-item').forEach(i => i.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const titles = { cpu: 'CPU', memory: 'Memoria', disk: 'Disco' };
+        const subtitles = { cpu: 'Uso del sistema', memory: 'RAM utilizada', disk: 'Uso del almacenamiento' };
+        
+        document.getElementById('perf-title').textContent = titles[metric];
+        document.getElementById('perf-subtitle').textContent = subtitles[metric];
+        
+        updatePerfChart();
+    }
+
+    function updatePerfChart() {
+        const chart = document.getElementById('perf-chart');
+        const bars = chart.querySelectorAll('.chart-bar');
+        const data = perfHistory[currentPerfMetric];
+        
+        bars.forEach((bar, i) => {
+            bar.style.height = `${data[i]}%`;
+        });
+    }
+
+    // Create Server Modal
+    function openCreateModal() {
+        document.getElementById('create-modal').classList.remove('hidden');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').classList.add('hidden');
+    }
+
+    async function loadVersionOptions() {
+        const select = document.getElementById('server-version');
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/versions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+                const versions = await res.json();
+                if (versions.length > 0) {
+                    select.innerHTML = versions.map(v => 
+                        `<option value="${v.mc_version}">${v.loader_type} ${v.mc_version}</option>`
+                    ).join('');
+                } else {
+                    select.innerHTML = '<option value="">No hay versiones instaladas</option>';
+                }
+            }
+        } catch (e) {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+        }
+    }
+
+    function updateVersionOptions() {
+        // Filter versions by selected type if needed
+        loadVersionOptions();
+    }
+
+    async function createServer() {
+        const name = document.getElementById('server-name').value.trim();
+        const type = document.getElementById('server-type').value;
+        const version = document.getElementById('server-version').value;
+        const port = document.getElementById('server-port').value;
+        const ram = document.getElementById('server-ram').value;
+
+        if (!name) {
+            if (typeof views !== 'undefined' && views.toast) {
+                views.toast.show('El nombre es requerido', 'error');
+            } else {
+                alert('El nombre es requerido');
+            }
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/servers/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    mod_loader: type,
+                    version: version || '1.21.4',
+                    port: parseInt(port) || 25565,
+                    ram_mb: parseInt(ram) * 1024 || 4096
+                })
+            });
+
+            if (res.ok) {
+                if (typeof views !== 'undefined' && views.toast) {
+                    views.toast.show(`Servidor "${name}" creado exitosamente`, 'success');
+                }
+                closeCreateModal();
+                loadServers();
+            } else {
+                const err = await res.json();
+                if (typeof views !== 'undefined' && views.toast) {
+                    views.toast.show(err.detail || 'Error al crear servidor', 'error');
+                } else {
+                    alert(err.detail || 'Error al crear servidor');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            if (typeof views !== 'undefined' && views.toast) {
+                views.toast.show('Error de conexión', 'error');
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,355 @@
+:root {
+    /* Windows 11 Color Palette */
+    --win-bg-color: #f3f3f3; /* Light mode generic */
+    --win-bg-dark: #202020;  /* Dark mode generic */
+    --win-surface: #ffffff;
+    --win-surface-dark: #2c2c2c;
+    --win-primary: #0078d4;
+    --win-primary-hover: #006cc1;
+    --win-text: #1b1b1b;
+    --win-text-dark: #ffffff;
+    --win-text-secondary: #5d5d5d;
+    --win-text-secondary-dark: #a0a0a0;
+    --win-border: #e5e5e5;
+    --win-border-dark: #454545;
+    
+    /* Mica-like effect variables */
+    --mica-bg: rgba(255, 255, 255, 0.7);
+    --mica-bg-dark: rgba(32, 32, 32, 0.7);
+
+    /* Dimensions */
+    --nav-height: 48px;
+    --sidebar-width: 250px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: var(--win-bg-dark);
+        --surface-color: var(--win-surface-dark);
+        --text-color: var(--win-text-dark);
+        --text-secondary: var(--win-text-secondary-dark);
+        --border-color: var(--win-border-dark);
+    }
+}
+
+body {
+    background-color: var(--bg-color, var(--win-bg-color));
+    color: var(--text-color, var(--win-text));
+    font-family: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* App-like feel */
+}
+
+/* Common Windows 11 Components */
+
+/* Buttons */
+.win-btn {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 24px;
+    color: var(--text-color);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.win-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--text-secondary);
+}
+
+.win-btn-primary {
+    background-color: var(--win-primary);
+    color: white;
+    border: none;
+}
+
+.win-btn-primary:hover {
+    background-color: var(--win-primary-hover);
+}
+
+/* Inputs */
+.win-input {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: var(--text-color);
+    font-size: 14px;
+    outline: none;
+}
+
+.win-input:focus {
+    border-bottom: 2px solid var(--win-primary);
+}
+
+/* Cards */
+.win-card {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Sidebar Layout */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+.nav-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--surface-color); /* Often slightly different in Win11, but surface is safe */
+    display: flex;
+    flex-direction: column;
+    padding: 16px 8px;
+    border-right: 1px solid var(--border-color);
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 4px;
+    color: var(--text-color);
+    text-decoration: none;
+    margin-bottom: 4px;
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+.nav-item.active {
+    background-color: rgba(128, 128, 128, 0.1);
+    border-left: 3px solid var(--win-primary);
+}
+
+.nav-item i, .nav-item img {
+    margin-right: 12px;
+    font-size: 18px;
+    width: 18px;
+    text-align: center;
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    background-color: var(--bg-color);
+}
+
+/* Window Navigation Toolbar (injected by os.js) */
+.window-nav-bar {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    background-color: transparent; /* Makes it blend with window header if needed */
+    position: absolute;
+    top: 30px; /* Below titlebar */
+    left: 0;
+    z-index: 1000;
+}
+
+.nav-arrow-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.nav-arrow-btn:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+/* CMD Console Global Styles */
+.cmd-console-global {
+    background-color: #0c0c0c;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    color: #cccccc;
+}
+
+.cmd-text-info { color: #3b78ff; }
+.cmd-text-warn { color: #f9f1a5; }
+.cmd-text-error { color: #e74856; }
+.cmd-text-success { color: #16c60c; }
+
+/* Windows Update Status */
+.wu-status-success { color: #16c60c; background: rgba(22, 198, 12, 0.1); }
+.wu-status-pending { color: #0078d4; background: rgba(0, 120, 212, 0.1); }
+.wu-status-error { color: #e74856; background: rgba(231, 72, 86, 0.1); }
+
+/* Task Manager Process Row Colors */
+.tm-process-high { background: rgba(239, 68, 68, 0.1); }
+.tm-process-medium { background: rgba(245, 158, 11, 0.1); }
+
+/* Windows 11 Toggles */
+.win-toggle {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    background: #555;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.win-toggle.active {
+    background: var(--win-primary);
+}
+
+.win-toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+}
+
+.win-toggle.active::after {
+    transform: translateX(20px);
+}
+
+/* Windows 11 Segmented Control */
+.win-segmented {
+    display: flex;
+    background: #2b2b2b;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.win-segmented-item {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+}
+
+.win-segmented-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+}
+
+.win-segmented-item.active {
+    background: var(--win-primary);
+    color: #fff;
+}
+
+/* Windows 11 Progress Bar */
+.win-progress {
+    height: 4px;
+    background: #3d3d3d;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.win-progress-bar {
+    height: 100%;
+    background: var(--win-primary);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.win-progress-indeterminate .win-progress-bar {
+    width: 30%;
+    animation: indeterminate 1.5s infinite;
+}
+
+@keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+}
+
+/* Windows 11 List Item */
+.win-list-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #2b2b2b;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.win-list-item:hover {
+    background: #333;
+    border-color: #555;
+}
+
+.win-list-item.selected {
+    background: rgba(0, 120, 212, 0.15);
+    border-color: var(--win-primary);
+}
+
+/* Windows 11 Flyout Menu */
+.win-flyout {
+    position: absolute;
+    background: #2b2b2b;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    padding: 8px;
+    min-width: 200px;
+    z-index: 1000;
+}
+
+.win-flyout-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.win-flyout-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+}
+
+.win-flyout-separator {
+    height: 1px;
+    background: #3d3d3d;
+    margin: 8px 0;
+}
+
+/* Animations */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-fade-in { animation: fadeIn 0.3s ease; }
+.animate-slide-up { animation: slideUp 0.3s ease; }

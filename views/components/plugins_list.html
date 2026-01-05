@@ -1,0 +1,97 @@
+<div class="plugin-list" id="plugin-results-grid">
+    <!-- Results will be injected here by JS -->
+    <div class="empty-state">
+        <ion-icon name="cube-outline" class="empty-icon"></ion-icon>
+        <h3>Search for Plugins</h3>
+        <p>Find and install plugins from Hangar directly to your server.</p>
+    </div>
+</div>
+
+<style>
+    .plugin-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .plugin-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        transition: transform 0.2s, border-color 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .plugin-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary);
+    }
+
+    .plugin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+    }
+
+    .plugin-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.25rem;
+    }
+
+    .plugin-author {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .plugin-desc {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .plugin-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .plugin-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .plugin-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-muted);
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>

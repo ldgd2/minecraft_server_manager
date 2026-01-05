@@ -1,0 +1,48 @@
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <img src="/source/png/server.png" class="icon-img icon-img--sm">
+        <span>MC Manager</span>
+    </div>
+    
+    <div class="sidebar-nav">
+        <div class="nav-item {{ 'active' if active_page == 'dashboard' }}" onclick="window.location.href='/'">
+            <img src="/source/png/dashboard.png" class="icon-img icon-img--sm">
+            <span>Dashboard</span>
+        </div>
+        
+        <div class="nav-item {{ 'active' if active_page == 'servers' }}" onclick="window.location.href='/servers'">
+            <img src="/source/png/server.png" class="icon-img icon-img--sm">
+            <span>Servers</span>
+        </div>
+        
+        <div class="nav-item {{ 'active' if active_page == 'worlds' }}" onclick="window.location.href='/worlds'">
+            <img src="/source/png/worlds.png" class="icon-img icon-img--sm">
+            <span>Worlds</span>
+        </div>
+        
+        <div class="nav-item {{ 'active' if active_page == 'versions' }}" onclick="window.location.href='/versions'">
+            <img src="/source/png/version.png" class="icon-img icon-img--sm">
+            <span>Versions</span>
+        </div>
+        
+        <div class="nav-item {{ 'active' if active_page == 'modloaders' }}" onclick="window.location.href='/modloaders'">
+            <img src="/source/png/mod.png" class="icon-img icon-img--sm">
+            <span>Mod Loaders</span>
+        </div>
+        
+        <div class="nav-item {{ 'active' if active_page == 'audit' }}" onclick="window.location.href='/audit'">
+            <img src="/source/png/audit.png" class="icon-img icon-img--sm">
+            <span>Audit Log</span>
+        </div>
+        
+        <div class="nav-item" onclick="window.location.href='/settings'">
+            <img src="/source/png/config.png" class="icon-img icon-img--sm">
+            <span>Settings</span>
+        </div>
+        
+        <div class="nav-item nav-item--danger" onclick="app.logout()">
+            <img src="/source/png/logout.png" class="icon-img icon-img--sm">
+            <span>Logout</span>
+        </div>
+    </div>
+</nav>

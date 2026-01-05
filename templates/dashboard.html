@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Server Manager Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+
+    <!-- LOGIN View -->
+    <div id="view-login" class="auth-container view">
+        <div class="auth-box">
+            <h2><ion-icon name="cube-outline"></ion-icon> Server Manager</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="login-user" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pass" class="form-input">
+            </div>
+            <button class="btn" onclick="app.login(document.getElementById('login-user').value, document.getElementById('login-pass').value)">Access Console</button>
+        </div>
+    </div>
+
+    <!-- MAIN Dashboard Layout -->
+    <div id="view-dashboard" class="dashboard-layout view hidden">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <ion-icon name="layers-outline"></ion-icon> MC Manager
+            </div>
+            <div class="nav-item active">
+                <ion-icon name="grid-outline"></ion-icon> Servers
+            </div>
+            <div class="nav-item" onclick="router.navigate('audit')"> <!-- audit view not impl in js yet -->
+                <ion-icon name="clipboard-outline"></ion-icon> Audit Log
+            </div>
+            <div class="nav-item" style="margin-top: auto; color: var(--danger)" onclick="localStorage.removeItem('token'); router.navigate('login')">
+                <ion-icon name="log-out-outline"></ion-icon> Logout
+            </div>
+        </nav>
+        
+        <main class="main-content">
+            <h1>Active Servers</h1>
+            <br>
+            <div id="server-grid" class="grid-container">
+                <!-- Javascript populates this -->
+            </div>
+        </main>
+    </div>
+
+    <!-- CREATE Dialog View (Overlay style or separate view) -->
+    <div id="view-creator" class="dashboard-layout view hidden">
+        <nav class="sidebar">
+             <div class="nav-item" onclick="router.navigate('dashboard')">
+                <ion-icon name="arrow-back-outline"></ion-icon> Back
+            </div>
+        </nav>
+        <main class="main-content">
+            <h1>Create New Server</h1>
+            <div style="max-width: 600px; background: var(--bg-secondary); padding: 2rem; border-radius: 1rem;">
+                <div class="form-group">
+                    <label>Server Name</label>
+                    <input type="text" id="create-name" class="form-input placeholder="Survival_Season1">
+                </div>
+                <div class="form-group">
+                    <label>Version (PaperMC)</label>
+                    <select id="create-version" class="form-input">
+                        <option value="1.20.4">1.20.4</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.19.4">1.19.4</option>
+                    </select>
+                </div>
+                <div class="flex-row">
+                    <div class="form-group" style="flex:1">
+                        <label>RAM (MB)</label>
+                        <input type="number" id="create-ram" class="form-input" value="2048">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Port</label>
+                        <input type="number" id="create-port" class="form-input" value="25565">
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="views.creator.create()">Deploy Instance</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- SERVER DETAIL View -->
+    <div id="view-server-detail" class="dashboard-layout view hidden">
+        <nav class="sidebar">
+            <div class="nav-item" onclick="router.navigate('dashboard')">
+                <ion-icon name="arrow-back-outline"></ion-icon> Back
+            </div>
+            <div class="sidebar-header" id="server-title" style="margin-top:1rem; font-size: 1.2rem;"></div>
+            
+            <button class="btn btn-success" style="margin-bottom: 1rem;" onclick="views.server.control('start')">Start</button>
+            <button class="btn btn-danger" style="margin-bottom: 1rem;" onclick="views.server.control('stop')">Stop</button>
+            <button class="btn btn-outline" style="margin-bottom: 1rem;" onclick="views.server.control('kill')">Kill</button>
+        </nav>
+
+        <main class="main-content">
+            <div class="server-header">
+                <div class="tab-nav" style="margin:0; border:none;">
+                    <button class="tab-btn active" onclick="views.server.showTab('console')">Console</button>
+                    <button class="tab-btn" onclick="views.server.showTab('mods')">Mods</button>
+                    <button class="tab-btn" onclick="views.server.showTab('files')">Files</button>
+                </div>
+                <div>
+                   <!-- Stats here maybe -->
+                </div>
+            </div>
+
+            <!-- CONSOLE TAB -->
+            <div id="tab-console" class="tab-content">
+                <div id="console-output" class="console-output"></div>
+                <div class="flex-row">
+                    <input type="text" id="console-input" class="console-input" placeholder="Type command..." onkeydown="if(event.key==='Enter') views.server.sendCommand()">
+                    <button class="btn" style="width: auto" onclick="views.server.sendCommand()">Send</button>
+                </div>
+            </div>
+
+            <!-- MODS TAB -->
+            <div id="tab-mods" class="tab-content hidden">
+                <div class="flex-row" style="margin-bottom: 2rem;">
+                    <input type="text" id="mod-search" class="form-input" placeholder="Search mods on Modrinth...">
+                    <button class="btn" style="width: auto;" onclick="views.server.searchMods()">Search</button>
+                </div>
+                <div id="mod-results">
+                    <!-- Results -->
+                </div>
+            </div>
+
+             <!-- FILES TAB -->
+             <div id="tab-files" class="tab-content hidden">
+                <h3>File Manager</h3>
+                <p>Drag and drop support coming soon.</p>
+                <!-- File list placeholder -->
+             </div>
+
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

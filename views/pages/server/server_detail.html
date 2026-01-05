@@ -1,0 +1,1147 @@
+{% extends "components/layout.html" %}
+
+{% block title %}{{ server_name }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Windows 11 Settings Layout */
+    .win-settings {
+        display: flex;
+        height: 100vh;
+        background: #202020;
+        overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .win-sidebar {
+        width: 280px;
+        min-width: 280px;
+        background: rgba(32, 32, 32, 0.6);
+        border-right: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .win-sidebar-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .win-sidebar-back {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .win-sidebar-back:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    .win-sidebar-title {
+        font-size: 13px;
+        color: #fff;
+        font-weight: 500;
+    }
+
+    /* Server Profile Card */
+    .server-profile {
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .server-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+    }
+
+    .server-avatar img {
+        width: 36px;
+        height: 36px;
+        filter: brightness(0) invert(1);
+    }
+
+    .server-info h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #fff;
+        margin: 0 0 4px 0;
+    }
+
+    .server-info p {
+        font-size: 12px;
+        color: rgba(255,255,255,0.5);
+        margin: 0;
+    }
+
+    .server-address {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        background: rgba(255,255,255,0.06);
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .server-address:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    /* Navigation Items */
+    .win-nav {
+        padding: 12px 8px;
+        flex: 1;
+    }
+
+    .win-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        color: rgba(255,255,255,0.8);
+        cursor: pointer;
+        transition: all 0.15s;
+        margin-bottom: 2px;
+        border: none;
+        background: transparent;
+        width: 100%;
+        text-align: left;
+        font-size: 13px;
+        font-family: inherit;
+    }
+
+    .win-nav-item:hover {
+        background: rgba(255,255,255,0.06);
+    }
+
+    .win-nav-item.active {
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+    }
+
+    .win-nav-item.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        width: 3px;
+        height: 16px;
+        background: #60cdff;
+        border-radius: 2px;
+        margin-left: -6px;
+    }
+
+    .win-nav-icon {
+        width: 20px;
+        height: 20px;
+        opacity: 0.9;
+    }
+
+    .win-nav-item i {
+        font-size: 18px;
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Quick Actions */
+    .win-sidebar-footer {
+        padding: 16px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .win-quick-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .win-quick-action:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    .win-quick-action-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .win-quick-action-info i {
+        font-size: 18px;
+        color: #60cdff;
+    }
+
+    .win-quick-action-text {
+        font-size: 13px;
+        color: #fff;
+    }
+
+    .win-quick-action-text small {
+        display: block;
+        font-size: 11px;
+        color: rgba(255,255,255,0.5);
+        margin-top: 2px;
+    }
+
+    /* Status Toggle */
+    .win-toggle-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .win-toggle {
+        width: 44px;
+        height: 22px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 11px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .win-toggle.active {
+        background: #60cdff;
+    }
+
+    .win-toggle::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        transition: left 0.2s;
+    }
+
+    .win-toggle.active::after {
+        left: 25px;
+    }
+
+    /* Main Content Area */
+    .win-main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        background: #1a1a1a;
+    }
+
+    .win-content-header {
+        padding: 32px 40px 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background: rgba(32, 32, 32, 0.3);
+    }
+
+    .win-content-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #fff;
+        margin: 0;
+    }
+
+    .win-content-body {
+        padding: 24px 40px;
+    }
+
+    /* Settings Cards */
+    .win-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    .win-card-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .win-card-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .win-card-title i {
+        font-size: 18px;
+        color: #60cdff;
+    }
+
+    .win-card-body {
+        padding: 0;
+    }
+
+    /* List Items (like Windows Settings) */
+    .win-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        transition: background 0.15s;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .win-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .win-list-item:hover {
+        background: rgba(255,255,255,0.04);
+    }
+
+    .win-list-item-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .win-list-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .win-list-item-icon i {
+        font-size: 20px;
+        color: #60cdff;
+    }
+
+    .win-list-item-icon img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .win-list-item-text h4 {
+        font-size: 13px;
+        font-weight: 500;
+        color: #fff;
+        margin: 0 0 2px 0;
+    }
+
+    .win-list-item-text p {
+        font-size: 12px;
+        color: rgba(255,255,255,0.5);
+        margin: 0;
+    }
+
+    .win-list-item-action {
+        color: rgba(255,255,255,0.4);
+        font-size: 18px;
+    }
+
+    /* Console Styles (CMD-like) */
+    .win-console {
+        background: #0c0c0c;
+        border-radius: 8px;
+        border: 1px solid #333;
+        overflow: hidden;
+        height: calc(100vh - 220px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .win-console-header {
+        background: linear-gradient(180deg, #2d2d2d 0%, #1f1f1f 100%);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid #444;
+    }
+
+    .win-console-header i {
+        font-size: 14px;
+        color: #888;
+    }
+
+    .win-console-header span {
+        font-size: 12px;
+        color: #bbb;
+    }
+
+    .win-console-output {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 16px;
+        font-family: 'Cascadia Code', 'Consolas', monospace;
+        font-size: 13px;
+        color: #ccc;
+        line-height: 1.6;
+    }
+
+    .win-console-output::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .win-console-output::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+
+    .win-console-output::-webkit-scrollbar-thumb {
+        background: #3a3a3a;
+        border-radius: 4px;
+    }
+
+    .win-console-line {
+        display: block;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .win-console-line.info { color: #3b78ff; }
+    .win-console-line.warn { color: #f9f1a5; }
+    .win-console-line.error { color: #e74856; }
+    .win-console-line.success { color: #16c60c; }
+
+    .win-console-input {
+        display: flex;
+        align-items: center;
+        background: #0c0c0c;
+        padding: 10px 16px;
+        border-top: 1px solid #333;
+        gap: 8px;
+    }
+
+    .win-console-prompt {
+        color: #16c60c;
+        font-family: 'Cascadia Code', monospace;
+        font-size: 13px;
+    }
+
+    .win-console-input input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #ccc;
+        font-family: 'Cascadia Code', monospace;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .win-console-send {
+        background: #16c60c;
+        border: none;
+        color: #000;
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .win-console-send:hover {
+        background: #1ed019;
+    }
+
+    /* Players Table */
+    .win-players-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .win-players-table th,
+    .win-players-table td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .win-players-table th {
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+    }
+
+    .win-players-table td {
+        font-size: 13px;
+        color: #fff;
+    }
+
+    .win-player-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .win-player-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    }
+
+    .win-player-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .win-player-action {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: none;
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .win-player-action:hover {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+    }
+
+    .win-player-action.danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+
+    /* Status Badge */
+    .win-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .win-status.online {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+    }
+
+    .win-status.offline {
+        background: rgba(107, 114, 128, 0.15);
+        color: #6b7280;
+    }
+
+    .win-status.starting {
+        background: rgba(59, 130, 246, 0.15);
+        color: #60cdff;
+    }
+
+    .win-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* Hidden tabs */
+    .tab-hidden {
+        display: none;
+    }
+
+    /* Control buttons */
+    .win-controls {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .win-control-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.04);
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .win-control-btn:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    .win-control-btn.primary {
+        background: #60cdff;
+        color: #000;
+        border-color: #60cdff;
+    }
+
+    .win-control-btn.primary:hover {
+        background: #7dd7ff;
+    }
+
+    .win-control-btn.success {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+        border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .win-control-btn.success:hover {
+        background: rgba(34, 197, 94, 0.25);
+    }
+
+    .win-control-btn.danger {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .win-control-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Form styles */
+    .win-form-group {
+        margin-bottom: 16px;
+    }
+
+    .win-form-label {
+        display: block;
+        font-size: 13px;
+        color: rgba(255,255,255,0.7);
+        margin-bottom: 8px;
+    }
+
+    .win-form-input {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .win-form-input:focus {
+        border-color: #60cdff;
+    }
+
+    .win-form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #fff;
+    }
+
+    .win-checkbox {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 2px solid rgba(255,255,255,0.3);
+        background: transparent;
+        appearance: none;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .win-checkbox:checked {
+        background: #60cdff;
+        border-color: #60cdff;
+    }
+
+    /* Empty state */
+    .win-empty {
+        text-align: center;
+        padding: 48px;
+        color: rgba(255,255,255,0.5);
+    }
+
+    .win-empty i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .win-empty p {
+        font-size: 14px;
+        margin: 0;
+    }
+</style>
+
+<div class="win-settings">
+    <!-- Sidebar -->
+    <div class="win-sidebar">
+        <div class="win-sidebar-header">
+            <button class="win-sidebar-back" onclick="history.back()" title="Volver">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <span class="win-sidebar-title">Configuración del Servidor</span>
+        </div>
+
+        <!-- Server Profile -->
+        <div class="server-profile">
+            <div class="server-avatar">
+                <img src="/source/png/server.png" alt="">
+            </div>
+            <div class="server-info">
+                <h2>{{ server_name }}</h2>
+                <p id="server-version">Minecraft Server</p>
+                <div class="server-address" onclick="views.server.copyAddress()" title="Click para copiar">
+                    <span id="server-address-display">Cargando...</span>
+                    <i class="ph ph-copy"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="win-nav">
+            <button class="win-nav-item active" onclick="showSection('consola')">
+                <i class="ph ph-terminal"></i>
+                Consola
+            </button>
+            <button class="win-nav-item" onclick="showSection('jugadores')">
+                <i class="ph ph-users"></i>
+                Jugadores
+            </button>
+            <button class="win-nav-item" onclick="showSection('mods')">
+                <i class="ph ph-puzzle-piece"></i>
+                Mods Instalados
+            </button>
+            <button class="win-nav-item" onclick="showSection('modstore')">
+                <i class="ph ph-storefront"></i>
+                Tienda de Mods
+            </button>
+            <button class="win-nav-item" onclick="showSection('archivos')">
+                <i class="ph ph-folder-open"></i>
+                Archivos
+            </button>
+            <button class="win-nav-item" onclick="showSection('ajustes')">
+                <i class="ph ph-gear"></i>
+                Ajustes
+            </button>
+        </nav>
+
+        <!-- Quick Actions Footer -->
+        <div class="win-sidebar-footer">
+            <div class="win-quick-action" onclick="views.server.control('start')">
+                <div class="win-quick-action-info">
+                    <i class="ph ph-play-circle"></i>
+                    <div class="win-quick-action-text">
+                        Estado del Servidor
+                        <small id="server-status-text">Verificando...</small>
+                    </div>
+                </div>
+                <div class="win-toggle" id="server-toggle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="win-main">
+        <!-- Console Section -->
+        <div id="section-consola" class="win-section">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Consola</h1>
+            </div>
+            <div class="win-content-body">
+                <div class="win-console">
+                    <div class="win-console-header">
+                        <i class="ph ph-terminal-window"></i>
+                        <span>{{ server_name }} - Terminal</span>
+                    </div>
+                    <div id="console-output" class="win-console-output">
+                        <span class="win-console-line" style="color: #666;">[Conectando al servidor...]</span>
+                    </div>
+                    <div class="win-console-input">
+                        <span class="win-console-prompt">></span>
+                        <input type="text" id="console-input" placeholder="Escribe un comando..." 
+                               onkeydown="if(event.key==='Enter') views.server.sendCommand()"
+                               autocomplete="off" spellcheck="false">
+                        <button class="win-console-send" onclick="views.server.sendCommand()">
+                            <i class="ph ph-paper-plane-tilt"></i>
+                            Enviar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="win-controls">
+                    <button class="win-control-btn success" onclick="views.server.control('start')">
+                        <i class="ph ph-play"></i>
+                        Iniciar
+                    </button>
+                    <button class="win-control-btn danger" onclick="views.server.control('stop')">
+                        <i class="ph ph-stop"></i>
+                        Detener
+                    </button>
+                    <button class="win-control-btn" onclick="views.server.control('restart')">
+                        <i class="ph ph-arrow-clockwise"></i>
+                        Reiniciar
+                    </button>
+                    <button class="win-control-btn danger" onclick="views.server.control('kill')">
+                        <i class="ph ph-x-circle"></i>
+                        Forzar Cierre
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Players Section -->
+        <div id="section-jugadores" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Jugadores</h1>
+            </div>
+            <div class="win-content-body">
+                <!-- Online Players Card -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-users"></i>
+                            Jugadores en Línea
+                            <span id="online-count" class="win-status online">0</span>
+                        </div>
+                        <button class="win-control-btn" onclick="views.players.load()">
+                            <i class="ph ph-arrows-clockwise"></i>
+                            Actualizar
+                        </button>
+                    </div>
+                    <div class="win-card-body" id="online-players-list">
+                        <div class="win-empty">
+                            <i class="ph ph-users-three"></i>
+                            <p>No hay jugadores en línea</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-clock-counter-clockwise"></i>
+                            Actividad Reciente
+                        </div>
+                    </div>
+                    <div class="win-card-body" id="recent-activity-list">
+                        <div class="win-empty">
+                            <i class="ph ph-clock"></i>
+                            <p>Sin actividad reciente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banned Users -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-prohibit"></i>
+                            Usuarios Baneados
+                        </div>
+                    </div>
+                    <div class="win-card-body" id="banned-users-list">
+                        <div class="win-empty">
+                            <i class="ph ph-shield-check"></i>
+                            <p>No hay usuarios baneados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mods Section -->
+        <div id="section-mods" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Mods Instalados</h1>
+            </div>
+            <div class="win-content-body">
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-puzzle-piece"></i>
+                            Mods del Servidor
+                        </div>
+                        <label class="win-control-btn primary" style="cursor: pointer;">
+                            <input type="file" id="mod-upload" multiple accept=".jar,.zip" style="display: none;" onchange="views.server.uploadMod(this)">
+                            <i class="ph ph-upload"></i>
+                            Subir Mod
+                        </label>
+                    </div>
+                    <div class="win-card-body" id="mod-list">
+                        <div class="win-empty">
+                            <i class="ph ph-puzzle-piece"></i>
+                            <p>No hay mods instalados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mod Store Section -->
+        <div id="section-modstore" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Tienda de Mods</h1>
+            </div>
+            <div class="win-content-body">
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-storefront"></i>
+                            Buscar en Modrinth
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 16px;">
+                        <div style="display: flex; gap: 12px;">
+                            <input type="text" id="mod-search" class="win-form-input" 
+                                   placeholder="Buscar mods (ej: JourneyMap, JEI)..." 
+                                   onkeydown="if(event.key==='Enter') views.server.searchMods()"
+                                   style="flex: 1;">
+                            <button class="win-control-btn primary" onclick="views.server.searchMods()">
+                                <i class="ph ph-magnifying-glass"></i>
+                                Buscar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mod-results" style="margin-top: 16px;">
+                    <!-- Results populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Section -->
+        <div id="section-archivos" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Archivos del Servidor</h1>
+            </div>
+            <div class="win-content-body">
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-upload"></i>
+                            Subir Archivo
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 16px;">
+                        <div style="display: flex; gap: 12px;">
+                            <input type="file" id="file-upload" class="win-form-input" style="flex: 1;">
+                            <button class="win-control-btn primary" onclick="views.server.uploadFile()">
+                                <i class="ph ph-upload"></i>
+                                Subir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="win-card" style="margin-top: 16px;">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-folder-open"></i>
+                            Explorador de Archivos
+                        </div>
+                    </div>
+                    <div class="win-card-body" id="file-list">
+                        <div class="win-empty">
+                            <i class="ph ph-folder"></i>
+                            <p>Cargando archivos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="section-ajustes" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Ajustes del Servidor</h1>
+            </div>
+            <div class="win-content-body">
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-sliders"></i>
+                            Configuración General
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <div class="win-form-group">
+                            <label class="win-form-label">Jugadores Máximos</label>
+                            <input type="number" id="setting-max-players" class="win-form-input" value="20" style="max-width: 200px;">
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Mensaje del Día (MOTD)</label>
+                            <input type="text" id="setting-motd" class="win-form-input" placeholder="Un Servidor de Minecraft">
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-checkbox">
+                                <input type="checkbox" id="setting-online-mode" class="win-checkbox">
+                                Modo Online (Solo cuentas premium)
+                            </label>
+                        </div>
+
+                        <button class="win-control-btn primary" onclick="views.server.saveSettings()" style="margin-top: 16px;">
+                            <i class="ph ph-floppy-disk"></i>
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="win-card" style="border-color: rgba(239, 68, 68, 0.3);">
+                    <div class="win-card-header" style="border-color: rgba(239, 68, 68, 0.2);">
+                        <div class="win-card-title" style="color: #ef4444;">
+                            <i class="ph ph-warning" style="color: #ef4444;"></i>
+                            Zona de Peligro
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            Estas acciones son irreversibles. Procede con precaución.
+                        </p>
+                        <button class="win-control-btn danger" onclick="if(confirm('¿Seguro que quieres eliminar este servidor?')) views.server.delete()">
+                            <i class="ph ph-trash"></i>
+                            Eliminar Servidor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SERVER_NAME = "{{ server_name }}";
+
+    function showSection(sectionId) {
+        // Hide all sections
+        document.querySelectorAll('.win-section').forEach(s => s.classList.add('tab-hidden'));
+        // Show selected
+        document.getElementById(`section-${sectionId}`).classList.remove('tab-hidden');
+
+        // Update nav
+        document.querySelectorAll('.win-nav-item').forEach(item => item.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        // Load section data
+        if (sectionId === 'jugadores') {
+            views.players.load();
+        } else if (sectionId === 'mods') {
+            views.server.loadMods();
+        } else if (sectionId === 'archivos') {
+            views.server.loadFiles();
+        }
+    }
+
+    function updateServerStatus(status) {
+        const toggle = document.getElementById('server-toggle');
+        const statusText = document.getElementById('server-status-text');
+        
+        const statusMap = {
+            'ONLINE': { text: 'En ejecución', active: true },
+            'OFFLINE': { text: 'Detenido', active: false },
+            'STARTING': { text: 'Iniciando...', active: true },
+            'STOPPING': { text: 'Deteniendo...', active: false }
+        };
+
+        const state = statusMap[status] || statusMap['OFFLINE'];
+        statusText.textContent = state.text;
+        
+        if (state.active) {
+            toggle.classList.add('active');
+        } else {
+            toggle.classList.remove('active');
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        app.checkAuth();
+        views.server.init(SERVER_NAME);
+        
+        // Override tab behavior for this page
+        views.server.showTab = function(tabId) {
+            const sectionMap = {
+                'console': 'consola',
+                'players': 'jugadores',
+                'mods': 'mods',
+                'modstore': 'modstore',
+                'files': 'archivos',
+                'settings': 'ajustes'
+            };
+            const navItems = document.querySelectorAll('.win-nav-item');
+            const mappedSection = sectionMap[tabId] || tabId;
+            
+            document.querySelectorAll('.win-section').forEach(s => s.classList.add('tab-hidden'));
+            const section = document.getElementById(`section-${mappedSection}`);
+            if (section) section.classList.remove('tab-hidden');
+
+            navItems.forEach(item => {
+                const itemSection = item.textContent.trim().toLowerCase();
+                item.classList.remove('active');
+                if (mappedSection.includes(itemSection.substring(0,4))) {
+                    item.classList.add('active');
+                }
+            });
+        };
+
+        // Update status periodically
+        setInterval(async () => {
+            try {
+                const res = await app.authorizedFetch(`/servers/${SERVER_NAME}/stats`);
+                if (res.ok) {
+                    const stats = await res.json();
+                    updateServerStatus(stats.status);
+                }
+            } catch (e) {}
+        }, 3000);
+    });
+</script>
+{% endblock %}

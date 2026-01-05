@@ -1,0 +1,151 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <img src="/source/png/dashboard.png" class="icon-img icon-img--lg">
+        <h1>Dashboard</h1>
+        <span id="service-status-badge" class="status-badge" style="margin-left: 1rem; background: var(--section-bg); border: 1px solid var(--border-color); color: var(--text-secondary);">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); display: inline-block; margin-right: 0.5rem;"></div>
+            Service: Checking...
+        </span>
+    </div>
+    <button class="btn btn-primary" onclick="views.modals.open('create-server-modal')">
+        <img src="/source/png/server.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1);">
+        New Server
+    </button>
+</div>
+
+<!-- Summary Widgets -->
+<div class="summary-grid" id="summary-widgets">
+    <div class="summary-widget">
+        <div class="summary-widget-icon">
+            <img src="/source/png/server.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="total-servers">-</span>
+            <span class="summary-widget-label">Total Servers</span>
+        </div>
+    </div>
+    <div class="summary-widget summary-widget--success">
+        <div class="summary-widget-icon">
+            <img src="/source/png/on.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="online-servers">-</span>
+            <span class="summary-widget-label">Online</span>
+        </div>
+    </div>
+    <div class="summary-widget summary-widget--danger">
+        <div class="summary-widget-icon">
+            <img src="/source/png/offline.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="offline-servers">-</span>
+            <span class="summary-widget-label">Offline</span>
+        </div>
+    </div>
+    <div class="summary-widget summary-widget--warning">
+        <div class="summary-widget-icon">
+            <img src="/source/png/player.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="total-players">-</span>
+            <span class="summary-widget-label">Total Players</span>
+        </div>
+    </div>
+</div>
+
+<!-- System Resources -->
+<div class="stat-widgets-grid" id="system-resources">
+    <div class="stat-widget">
+        <div class="stat-widget-icon">
+            <img src="/source/png/cpu.png" class="icon-img">
+        </div>
+        <div class="stat-widget-content">
+            <span class="stat-widget-label">CPU Usage</span>
+            <span class="stat-widget-value" id="cpu-usage">--%</span>
+            <div class="stat-widget-bar">
+                <div class="stat-widget-progress" id="cpu-bar" style="--progress: 0%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-widget">
+        <div class="stat-widget-icon">
+            <img src="/source/png/ram.png" class="icon-img">
+        </div>
+        <div class="stat-widget-content">
+            <span class="stat-widget-label">Memory Usage</span>
+            <span class="stat-widget-value" id="ram-usage">-- / -- GB</span>
+            <div class="stat-widget-bar">
+                <div class="stat-widget-progress" id="ram-bar" style="--progress: 0%"></div>
+            </div>
+        </div>
+    </div>
+    <div class="stat-widget">
+        <div class="stat-widget-icon">
+            <img src="/source/png/disk.png" class="icon-img">
+        </div>
+        <div class="stat-widget-content">
+            <span class="stat-widget-label">Disk Usage</span>
+            <span class="stat-widget-value" id="disk-usage">-- / -- GB</span>
+            <div class="stat-widget-bar">
+                <div class="stat-widget-progress" id="disk-bar" style="--progress: 0%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-grid">
+    <div class="chart-container">
+        <div class="chart-header">
+            <h3 class="chart-title">Server Status Overview</h3>
+        </div>
+        <div class="chart-body">
+            <canvas id="server-status-chart"></canvas>
+        </div>
+    </div>
+    <div class="chart-container">
+        <div class="chart-header">
+            <h3 class="chart-title">Resource Usage History</h3>
+            <div class="chart-timeframe">
+                <button class="chart-time-btn active" onclick="views.charts.setTimeframe('1h')">1H</button>
+                <button class="chart-time-btn" onclick="views.charts.setTimeframe('24h')">24H</button>
+                <button class="chart-time-btn" onclick="views.charts.setTimeframe('7d')">7D</button>
+            </div>
+        </div>
+        <div class="chart-body">
+            <canvas id="resource-history-chart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Servers -->
+<div style="margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Recent Servers</h3>
+</div>
+<div class="server-grid" id="server-grid">
+    <div class="loading">
+        <div class="loading-spinner"></div>
+    </div>
+</div>
+
+<!-- Create Server Modal -->
+{% include "components/modals/create_server_modal.html" %}
+
+<!-- Delete Confirm Modal -->
+{% include "components/modals/delete_confirm_modal.html" %}
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        app.checkAuth();
+        views.dashboard.init();
+    });
+</script>
+{% endblock %}

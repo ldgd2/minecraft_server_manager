@@ -1,0 +1,661 @@
+{% extends "components/layout.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Windows 11 Settings Style */
+    .settings-app {
+        display: flex;
+        height: 100%;
+        background-color: #191919;
+        color: #fff;
+    }
+
+    .settings-sidebar {
+        width: 280px;
+        background-color: #202020;
+        border-right: 1px solid #2d2d2d;
+        padding: 24px 12px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .settings-search {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: #fff;
+        margin-bottom: 16px;
+        font-size: 14px;
+        width: 100%;
+    }
+
+    .settings-search:focus {
+        outline: none;
+        border-bottom: 2px solid #0078d4;
+    }
+
+    .settings-search::placeholder {
+        color: #888;
+    }
+
+    .settings-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-radius: 4px;
+        color: #ccc;
+        cursor: pointer;
+        transition: all 0.15s;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .settings-nav-item:hover {
+        background: rgba(255,255,255,0.05);
+        color: #fff;
+    }
+
+    .settings-nav-item.active {
+        background: rgba(255,255,255,0.08);
+        color: #fff;
+    }
+
+    .settings-nav-item.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        width: 3px;
+        height: 20px;
+        background: #0078d4;
+        border-radius: 0 2px 2px 0;
+    }
+
+    .settings-nav-item i {
+        font-size: 18px;
+        width: 24px;
+        text-align: center;
+    }
+
+    .settings-main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 40px 48px;
+    }
+
+    .settings-header {
+        margin-bottom: 32px;
+    }
+
+    .settings-header h1 {
+        font-size: 28px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+    }
+
+    .settings-header p {
+        color: #888;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .settings-section {
+        display: none;
+    }
+
+    .settings-section.active {
+        display: block;
+    }
+
+    .settings-card {
+        background: #2b2b2b;
+        border: 1px solid #3d3d3d;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        overflow: hidden;
+    }
+
+    .settings-card-header {
+        padding: 16px 20px;
+        font-weight: 600;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid #3d3d3d;
+    }
+
+    .settings-card-header i {
+        font-size: 20px;
+        color: #0078d4;
+    }
+
+    .settings-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid #2d2d2d;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .settings-item:last-child {
+        border-bottom: none;
+    }
+
+    .settings-item:hover {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .settings-item-info {
+        flex: 1;
+    }
+
+    .settings-item-title {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .settings-item-desc {
+        font-size: 12px;
+        color: #888;
+    }
+
+    .settings-item-value {
+        color: #888;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+        position: relative;
+        width: 40px;
+        height: 20px;
+        background: #555;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+        background: #0078d4;
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.2s;
+    }
+
+    .toggle-switch.active::after {
+        transform: translateX(20px);
+    }
+
+    /* Theme Cards */
+    .theme-grid {
+        display: flex;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .theme-card {
+        width: 100px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .theme-preview {
+        width: 100%;
+        height: 60px;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        margin-bottom: 8px;
+        transition: border-color 0.2s;
+    }
+
+    .theme-card.active .theme-preview {
+        border-color: #0078d4;
+    }
+
+    .theme-preview.dark {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+
+    .theme-preview.light {
+        background: linear-gradient(135deg, #f0f0f0 0%, #fff 100%);
+    }
+
+    .theme-preview.auto {
+        background: linear-gradient(135deg, #1a1a1a 0%, #f0f0f0 100%);
+    }
+
+    .theme-label {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    /* About Section */
+    .about-header {
+        text-align: center;
+        padding: 40px 20px;
+    }
+
+    .about-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 16px;
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .about-icon img {
+        width: 48px;
+        height: 48px;
+    }
+
+    .about-name {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .about-version {
+        color: #888;
+        font-size: 14px;
+    }
+
+    .specs-grid {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 8px 24px;
+        padding: 20px;
+        font-size: 13px;
+    }
+
+    .specs-label {
+        color: #888;
+    }
+
+    .specs-value {
+        color: #fff;
+    }
+</style>
+
+<div class="settings-app">
+    <!-- Sidebar -->
+    <div class="settings-sidebar">
+        <input type="text" class="settings-search" placeholder="Buscar configuración">
+        
+        <nav style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;">
+            <button class="settings-nav-item active" onclick="showSettingsSection('system', this)">
+                <i class="ph ph-desktop"></i>
+                <span>Sistema</span>
+            </button>
+            <button class="settings-nav-item" onclick="showSettingsSection('server', this)">
+                <i class="ph ph-hard-drives"></i>
+                <span>Servidor</span>
+            </button>
+            <button class="settings-nav-item" onclick="showSettingsSection('personalization', this)">
+                <i class="ph ph-paint-brush"></i>
+                <span>Personalización</span>
+            </button>
+            <button class="settings-nav-item" onclick="showSettingsSection('network', this)">
+                <i class="ph ph-wifi-high"></i>
+                <span>Red</span>
+            </button>
+            <button class="settings-nav-item" onclick="showSettingsSection('security', this)">
+                <i class="ph ph-shield-check"></i>
+                <span>Seguridad</span>
+            </button>
+            
+            <div style="flex: 1"></div>
+            
+            <button class="settings-nav-item" onclick="showSettingsSection('about', this)">
+                <i class="ph ph-info"></i>
+                <span>Acerca de</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="settings-main">
+        <!-- System Section -->
+        <div id="section-system" class="settings-section active">
+            <div class="settings-header">
+                <h1>Sistema</h1>
+                <p>Configuración general del sistema</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-monitor"></i>
+                    Pantalla
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Modo de ventana</div>
+                        <div class="settings-item-desc">Limitar el número de ventanas abiertas</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>2 máximo</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Animaciones</div>
+                        <div class="settings-item-desc">Efectos visuales en la interfaz</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-floppy-disk"></i>
+                    Almacenamiento
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Carpeta de servidores</div>
+                        <div class="settings-item-desc">./servers</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <i class="ph ph-folder-open"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Carpeta de versiones</div>
+                        <div class="settings-item-desc">./versions</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <i class="ph ph-folder-open"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Section -->
+        <div id="section-server" class="settings-section">
+            <div class="settings-header">
+                <h1>Servidor</h1>
+                <p>Configuración predeterminada de servidores</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-gear"></i>
+                    Valores predeterminados
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Memoria RAM</div>
+                        <div class="settings-item-desc">Cantidad de RAM asignada por defecto</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>4 GB</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Puerto predeterminado</div>
+                        <div class="settings-item-desc">Puerto inicial para nuevos servidores</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>25565</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Auto-restart</div>
+                        <div class="settings-item-desc">Reiniciar servidor si falla</div>
+                    </div>
+                    <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-terminal"></i>
+                    Consola
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Límite de líneas</div>
+                        <div class="settings-item-desc">Máximo de líneas en la consola</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>1000</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Auto-scroll</div>
+                        <div class="settings-item-desc">Desplazar automáticamente</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personalization Section -->
+        <div id="section-personalization" class="settings-section">
+            <div class="settings-header">
+                <h1>Personalización</h1>
+                <p>Temas y apariencia</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-palette"></i>
+                    Tema
+                </div>
+                <div class="theme-grid">
+                    <div class="theme-card active" onclick="selectTheme(this)">
+                        <div class="theme-preview dark"></div>
+                        <span class="theme-label">Oscuro</span>
+                    </div>
+                    <div class="theme-card" onclick="selectTheme(this)">
+                        <div class="theme-preview light"></div>
+                        <span class="theme-label">Claro</span>
+                    </div>
+                    <div class="theme-card" onclick="selectTheme(this)">
+                        <div class="theme-preview auto"></div>
+                        <span class="theme-label">Automático</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-drop"></i>
+                    Color de acento
+                </div>
+                <div style="padding: 20px; display: flex; gap: 12px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0078d4; cursor: pointer; border: 2px solid #fff;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #6366f1; cursor: pointer;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #10b981; cursor: pointer;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #f59e0b; cursor: pointer;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #ef4444; cursor: pointer;"></div>
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #ec4899; cursor: pointer;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Section -->
+        <div id="section-network" class="settings-section">
+            <div class="settings-header">
+                <h1>Red</h1>
+                <p>Configuración de red y conexiones</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-globe"></i>
+                    Conexión
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">IP del servidor</div>
+                        <div class="settings-item-desc">Dirección de escucha</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>0.0.0.0</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Puerto de API</div>
+                        <div class="settings-item-desc">Puerto del panel de control</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>8000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Section -->
+        <div id="section-security" class="settings-section">
+            <div class="settings-header">
+                <h1>Seguridad</h1>
+                <p>Autenticación y permisos</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-lock"></i>
+                    Autenticación
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Requerir autenticación</div>
+                        <div class="settings-item-desc">Activar login para acceder</div>
+                    </div>
+                    <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Tiempo de sesión</div>
+                        <div class="settings-item-desc">Expiración del token</div>
+                    </div>
+                    <div class="settings-item-value">
+                        <span>24 horas</span>
+                        <i class="ph ph-caret-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Section -->
+        <div id="section-about" class="settings-section">
+            <div class="settings-header">
+                <h1>Acerca de</h1>
+                <p>Información del sistema</p>
+            </div>
+
+            <div class="settings-card">
+                <div class="about-header">
+                    <div class="about-icon">
+                        <img src="/source/png/server.png" alt="Logo">
+                    </div>
+                    <div class="about-name">Minecraft Server Manager</div>
+                    <div class="about-version">Version 2.0.0-beta</div>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <i class="ph ph-cpu"></i>
+                    Especificaciones del dispositivo
+                </div>
+                <div class="specs-grid">
+                    <span class="specs-label">Sistema operativo</span>
+                    <span class="specs-value">Windows</span>
+                    
+                    <span class="specs-label">Procesador</span>
+                    <span class="specs-value" id="spec-processor">Detectando...</span>
+                    
+                    <span class="specs-label">RAM instalada</span>
+                    <span class="specs-value" id="spec-ram">Detectando...</span>
+                    
+                    <span class="specs-label">Python</span>
+                    <span class="specs-value">3.11+</span>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <div class="settings-item">
+                    <div class="settings-item-info">
+                        <div class="settings-item-title">Buscar actualizaciones</div>
+                        <div class="settings-item-desc">Comprueba si hay una nueva versión</div>
+                    </div>
+                    <button class="win-btn win-btn-primary" style="padding: 6px 16px; font-size: 13px;">
+                        Comprobar
+                    </button>
+                </div>
+            </div>
+
+            <div style="text-align: center; padding: 24px; color: #666; font-size: 13px;">
+                <p>Creado con <span style="color: #ef4444;">❤</span> por Antigravity</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showSettingsSection(sectionId, btn) {
+        // Hide all sections
+        document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+        // Show selected
+        document.getElementById('section-' + sectionId).classList.add('active');
+        
+        // Update nav
+        document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function selectTheme(card) {
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+    }
+
+    // Load system specs
+    document.addEventListener('DOMContentLoaded', () => {
+        app.checkAuth();
+        
+        // Try to get system info
+        if (navigator.hardwareConcurrency) {
+            document.getElementById('spec-processor').textContent = navigator.hardwareConcurrency + ' núcleos lógicos';
+        }
+        if (navigator.deviceMemory) {
+            document.getElementById('spec-ram').textContent = navigator.deviceMemory + ' GB';
+        } else {
+            document.getElementById('spec-ram').textContent = 'No disponible';
+        }
+    });
+</script>
+{% endblock %}

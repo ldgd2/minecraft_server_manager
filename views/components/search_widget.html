@@ -1,0 +1,84 @@
+<div class="search-widget" id="plugin-search-widget">
+    <div class="search-bar-container">
+        <div class="search-input-group">
+            <ion-icon name="search-outline" class="search-icon"></ion-icon>
+            <input type="text" id="plugin-search-query" placeholder="Search plugins (e.g. Essentials, Vault)..." class="search-input">
+        </div>
+        
+        <div class="search-filters">
+            <select id="plugin-sort-filter" class="search-select">
+                <option value="estrellas">Stars</option>
+                <option value="descargas_recientes">Recent Downloads</option>
+                <option value="mas_descargados">Most Downloaded</option>
+                <option value="actualizados">Recently Updated</option>
+                <option value="nuevos">Newest</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary search-btn" onclick="views.paper.search()">
+            Search
+        </button>
+    </div>
+</div>
+
+<style>
+    .search-widget {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+    }
+
+    .search-bar-container {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .search-input-group {
+        flex: 1;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        color: var(--text-muted);
+        font-size: 1.2rem;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .search-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        outline: none;
+    }
+
+    .search-select {
+        padding: 0.75rem 2rem 0.75rem 1rem;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        color: var(--text);
+        cursor: pointer;
+        min-width: 150px;
+    }
+    
+    .search-btn {
+        padding: 0 2rem;
+        font-weight: 500;
+    }
+</style>

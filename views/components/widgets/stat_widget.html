@@ -1,0 +1,13 @@
+<!-- Widget: Stat Card with Icon and Animated Progress -->
+<div class="stat-widget {{ variant }}" data-value="{{ value }}" data-max="{{ max }}">
+    <div class="stat-widget-icon">
+        <img src="/source/svg/icons/{{ icon }}.svg" alt="{{ title }}" class="svg-icon">
+    </div>
+    <div class="stat-widget-content">
+        <span class="stat-widget-label">{{ title }}</span>
+        <span class="stat-widget-value">{{ value }}{{ unit }}</span>
+        <div class="stat-widget-bar">
+            <div class="stat-widget-progress" style="--progress: {{ percent }}%"></div>
+        </div>
+    </div>
+</div>

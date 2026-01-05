@@ -1,0 +1,31 @@
+<!-- Modal: Confirm Delete -->
+<div id="delete-confirm-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="views.modals.close('delete-confirm-modal')"></div>
+    <div class="modal-container modal-container--sm">
+        <div class="modal-header modal-header--danger">
+            <h2 class="modal-title">
+                <ion-icon name="warning-outline"></ion-icon>
+                Delete Server
+            </h2>
+        </div>
+        
+        <div class="modal-body">
+            <p class="modal-message">
+                Are you sure you want to delete <strong id="delete-server-name"></strong>?
+            </p>
+            <p class="modal-warning">
+                This action cannot be undone. All server data, worlds, and configurations will be permanently removed.
+            </p>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="views.modals.close('delete-confirm-modal')">
+                Cancel
+            </button>
+            <button class="btn btn-danger" id="confirm-delete-btn" onclick="views.servers.delete()">
+                <ion-icon name="trash-outline"></ion-icon>
+                Delete Forever
+            </button>
+        </div>
+    </div>
+</div>

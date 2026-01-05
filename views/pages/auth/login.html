@@ -1,0 +1,50 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <img src="/source/png/login.png" class="png-icon png-icon--xl" style="margin-bottom: 0.5rem; width: 64px; height: 64px;">
+        </div>
+        <h2>
+            <img src="/source/png/server.png" class="png-icon png-icon--sm" style="vertical-align: text-bottom;">
+            MC Manager
+        </h2>
+        
+        <div class="form-group">
+            <label class="form-label">
+                <img src="/source/png/user.png" class="png-icon png-icon--xs" style="margin-right: 5px;">
+                Username
+            </label>
+            <input type="text" id="login-user" class="form-input" 
+                   placeholder="Enter username"
+                   onkeydown="if(event.key==='Enter') document.getElementById('login-pass').focus()">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">
+                <img src="/source/png/passwortd.png" class="png-icon png-icon--xs" style="margin-right: 5px;">
+                Password
+            </label>
+            <input type="password" id="login-pass" class="form-input" 
+                   placeholder="Enter password"
+                   onkeydown="if(event.key==='Enter') app.login()">
+        </div>
+        
+        <button class="btn btn-primary" onclick="app.login()" style="width: 100%; margin-top: 0.5rem;">
+            <img src="/source/png/login.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1);">
+            Access Dashboard
+        </button>
+        
+        <p style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+            Minecraft Server Manager v1.0
+        </p>
+    </div>
+</div>
+
+<!-- Toast Container for errors -->
+<div class="toast-container" id="toast-container"></div>
+<script src="/static/js/app.js"></script>
+{% endblock %}

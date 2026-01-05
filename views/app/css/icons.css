@@ -1,0 +1,26 @@
+/* CSS for PNG icons replacment */
+.png-icon {
+    display: inline-block;
+    vertical-align: middle;
+    object-fit: contain;
+}
+
+.png-icon--xs {
+    width: 16px;
+    height: 16px;
+}
+
+.png-icon--sm {
+    width: 20px;
+    height: 20px;
+}
+
+.png-icon--md {
+    width: 24px;
+    height: 24px;
+}
+
+.png-icon--xl {
+    width: 64px;
+    height: 64px;
+}

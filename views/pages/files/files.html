@@ -1,0 +1,1409 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Explorador de Archivos{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Windows 11 File Explorer Style */
+    .file-manager {
+        display: flex;
+        height: 100vh;
+        background: #191919;
+        color: #fff;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* Sidebar Navigation */
+    .fm-sidebar {
+        width: 220px;
+        min-width: 220px;
+        background: rgba(32, 32, 32, 0.6);
+        border-right: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        flex-direction: column;
+        padding: 12px 0;
+    }
+
+    .fm-sidebar-section {
+        padding: 8px 12px;
+        font-size: 11px;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .fm-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        margin: 2px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-size: 13px;
+        color: rgba(255,255,255,0.85);
+        border: none;
+        background: transparent;
+        width: calc(100% - 16px);
+        text-align: left;
+    }
+
+    .fm-nav-item:hover {
+        background: rgba(255,255,255,0.08);
+    }
+
+    .fm-nav-item.active {
+        background: rgba(96, 205, 255, 0.15);
+        color: #60cdff;
+    }
+
+    .fm-nav-item i {
+        font-size: 18px;
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Main Content */
+    .fm-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Toolbar */
+    .fm-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(32, 32, 32, 0.4);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .fm-toolbar-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .fm-toolbar-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    .fm-toolbar-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .fm-toolbar-btn i {
+        font-size: 16px;
+    }
+
+    .fm-breadcrumb {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 13px;
+        overflow-x: auto;
+    }
+
+    .fm-breadcrumb-item {
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .fm-breadcrumb-item:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    .fm-breadcrumb-separator {
+        color: rgba(255,255,255,0.3);
+    }
+
+    /* Content Grid */
+    .fm-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    .fm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+
+    .fm-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        border: 1px solid transparent;
+    }
+
+    .fm-item:hover {
+        background: rgba(255,255,255,0.06);
+    }
+
+    .fm-item.selected {
+        background: rgba(96, 205, 255, 0.15);
+        border-color: rgba(96, 205, 255, 0.3);
+    }
+
+    .fm-item-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+
+    .fm-item-icon i {
+        font-size: 40px;
+    }
+
+    .fm-item-icon.folder i {
+        color: #f4c542;
+    }
+
+    .fm-item-icon.file i {
+        color: #60cdff;
+    }
+
+    .fm-item-name {
+        font-size: 12px;
+        text-align: center;
+        word-break: break-word;
+        max-width: 100%;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* List View */
+    .fm-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .fm-list .fm-item {
+        flex-direction: row;
+        padding: 8px 16px;
+        gap: 12px;
+    }
+
+    .fm-list .fm-item-icon {
+        width: 24px;
+        height: 24px;
+        margin-bottom: 0;
+    }
+
+    .fm-list .fm-item-icon i {
+        font-size: 20px;
+    }
+
+    .fm-list .fm-item-name {
+        flex: 1;
+        text-align: left;
+    }
+
+    .fm-list .fm-item-meta {
+        font-size: 12px;
+        color: rgba(255,255,255,0.5);
+    }
+
+    /* Empty State */
+    .fm-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: rgba(255,255,255,0.4);
+        gap: 16px;
+    }
+
+    .fm-empty i {
+        font-size: 64px;
+        opacity: 0.5;
+    }
+
+    .fm-empty p {
+        font-size: 14px;
+    }
+
+    /* Loading */
+    .fm-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .fm-loading i {
+        font-size: 32px;
+        color: #60cdff;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Status Bar */
+    .fm-statusbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 6px 16px;
+        background: rgba(32, 32, 32, 0.6);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        font-size: 12px;
+        color: rgba(255,255,255,0.5);
+    }
+
+    /* View Toggle */
+    .fm-view-toggle {
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+    }
+
+    .fm-view-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.5);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fm-view-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    .fm-view-btn.active {
+        background: rgba(96, 205, 255, 0.15);
+        color: #60cdff;
+    }
+
+    /* ============================================
+       NOTEPAD MODAL (Windows 11 Style)
+       ============================================ */
+    .notepad-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .notepad-overlay.visible {
+        display: flex;
+    }
+
+    .notepad-window {
+        width: 90%;
+        max-width: 1000px;
+        height: 80vh;
+        background: #1e1e1e;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.1);
+        overflow: hidden;
+    }
+
+    /* Notepad Title Bar */
+    .notepad-titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 8px;
+        height: 32px;
+        background: #2d2d2d;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .notepad-titlebar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .notepad-titlebar i {
+        color: #60cdff;
+        font-size: 14px;
+    }
+
+    .notepad-titlebar span {
+        font-size: 12px;
+        color: #fff;
+    }
+
+    .notepad-titlebar-btns {
+        display: flex;
+    }
+
+    .notepad-titlebar-btn {
+        width: 46px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .notepad-titlebar-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    .notepad-titlebar-btn.close:hover {
+        background: #e81123;
+        color: #fff;
+    }
+
+    /* Notepad Menu Bar */
+    .notepad-menubar {
+        display: flex;
+        gap: 0;
+        padding: 0 10px;
+        background: #2d2d2d;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .notepad-menu-item {
+        padding: 6px 12px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.8);
+        cursor: pointer;
+        border: none;
+        background: transparent;
+        transition: background 0.15s;
+    }
+
+    .notepad-menu-item:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    /* Notepad Tabs */
+    .notepad-tabs {
+        display: flex;
+        background: #252526;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        overflow-x: auto;
+    }
+
+    .notepad-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        background: transparent;
+        border: none;
+        border-right: 1px solid rgba(255,255,255,0.06);
+        cursor: pointer;
+        min-width: 120px;
+        max-width: 200px;
+        transition: background 0.15s;
+    }
+
+    .notepad-tab:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .notepad-tab.active {
+        background: #1e1e1e;
+        color: #fff;
+    }
+
+    .notepad-tab.modified::after {
+        content: '●';
+        color: #60cdff;
+        margin-left: 4px;
+    }
+
+    .notepad-tab-close {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: auto;
+        font-size: 10px;
+    }
+
+    .notepad-tab-close:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    /* Notepad Editor */
+    .notepad-editor {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .notepad-textarea {
+        flex: 1;
+        width: 100%;
+        padding: 16px;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: none;
+        resize: none;
+        font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        outline: none;
+    }
+
+    .notepad-textarea::placeholder {
+        color: #555;
+    }
+
+    /* Notepad Status Bar */
+    .notepad-statusbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 16px;
+        background: #007acc;
+        font-size: 11px;
+        color: #fff;
+    }
+
+    .notepad-status-left,
+    .notepad-status-right {
+        display: flex;
+        gap: 16px;
+    }
+
+    .notepad-status-item {
+        padding: 2px 8px;
+    }
+</style>
+
+<!-- Notepad Modal -->
+<div id="notepad-overlay" class="notepad-overlay">
+    <div class="notepad-window">
+        <div class="notepad-titlebar">
+            <div class="notepad-titlebar-left">
+                <i class="ph ph-note-pencil"></i>
+                <span id="notepad-title">Sin título - Bloc de notas</span>
+            </div>
+            <div class="notepad-titlebar-btns">
+                <button class="notepad-titlebar-btn" onclick="minimizeNotepad()">
+                    <i class="ph ph-minus"></i>
+                </button>
+                <button class="notepad-titlebar-btn" onclick="maximizeNotepad()">
+                    <i class="ph ph-square"></i>
+                </button>
+                <button class="notepad-titlebar-btn close" onclick="closeNotepad()">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="notepad-menubar">
+            <button class="notepad-menu-item" onclick="saveCurrentFile()">Archivo</button>
+            <button class="notepad-menu-item">Editar</button>
+            <button class="notepad-menu-item">Ver</button>
+        </div>
+
+        <div class="notepad-tabs" id="notepad-tabs">
+            <!-- Tabs populated by JS -->
+        </div>
+
+        <div class="notepad-editor">
+            <textarea id="notepad-textarea" class="notepad-textarea" 
+                      placeholder="Escribe aquí..."
+                      oninput="onEditorInput()"
+                      onkeydown="handleEditorKeydown(event)"></textarea>
+        </div>
+
+        <div class="notepad-statusbar">
+            <div class="notepad-status-left">
+                <span class="notepad-status-item" id="notepad-cursor">Ln 1, Col 1</span>
+                <span class="notepad-status-item" id="notepad-chars">0 caracteres</span>
+            </div>
+            <div class="notepad-status-right">
+                <span class="notepad-status-item">UTF-8</span>
+                <span class="notepad-status-item">Windows (CRLF)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photos Viewer Modal -->
+<style>
+    .photos-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.95);
+        z-index: 10001;
+        display: none;
+        flex-direction: column;
+    }
+
+    .photos-overlay.visible {
+        display: flex;
+    }
+
+    .photos-titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .photos-titlebar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .photos-titlebar i.app-icon {
+        color: #60cdff;
+        font-size: 18px;
+    }
+
+    .photos-title {
+        font-size: 13px;
+        color: #fff;
+    }
+
+    .photos-close-btn {
+        width: 40px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.15s;
+    }
+
+    .photos-close-btn:hover {
+        background: #e81123;
+        color: #fff;
+    }
+
+    .photos-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        overflow: hidden;
+    }
+
+    .photos-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .photos-video {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 4px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .photos-toolbar {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    .photos-toolbar-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: none;
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .photos-toolbar-btn:hover {
+        background: rgba(255,255,255,0.2);
+    }
+</style>
+
+<div id="photos-overlay" class="photos-overlay" onclick="if(event.target === this) closePhotos()">
+    <div class="photos-titlebar">
+        <div class="photos-titlebar-left">
+            <i class="ph ph-image app-icon"></i>
+            <span class="photos-title" id="photos-title">Foto</span>
+        </div>
+        <button class="photos-close-btn" onclick="closePhotos()">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    
+    <div class="photos-content">
+        <img id="photos-image" class="photos-image" src="" alt="Preview">
+        <video id="photos-video" class="photos-video" controls style="display: none;"></video>
+    </div>
+    
+    <div class="photos-toolbar">
+        <button class="photos-toolbar-btn" title="Zoom +">
+            <i class="ph ph-magnifying-glass-plus"></i>
+        </button>
+        <button class="photos-toolbar-btn" title="Zoom -">
+            <i class="ph ph-magnifying-glass-minus"></i>
+        </button>
+        <button class="photos-toolbar-btn" title="Rotar">
+            <i class="ph ph-arrow-clockwise"></i>
+        </button>
+    </div>
+</div>
+
+<div class="file-manager">
+    <!-- Sidebar -->
+    <div class="fm-sidebar">
+        <div class="fm-sidebar-section">Acceso Rápido</div>
+        
+        <button class="fm-nav-item active" onclick="navigateToRoot('servers')" id="nav-servers">
+            <i class="ph ph-hard-drives"></i>
+            <span>Servidores</span>
+        </button>
+        
+        <button class="fm-nav-item" onclick="navigateToRoot('worlds')" id="nav-worlds">
+            <i class="ph ph-globe-hemisphere-west"></i>
+            <span>Mundos</span>
+        </button>
+        
+        <button class="fm-nav-item" onclick="navigateToRoot('versions')" id="nav-versions">
+            <i class="ph ph-git-branch"></i>
+            <span>Versiones</span>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="fm-main">
+        <!-- Toolbar -->
+        <div class="fm-toolbar">
+            <button class="fm-toolbar-btn" onclick="goBack()" id="btn-back" disabled>
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <button class="fm-toolbar-btn" onclick="goForward()" id="btn-forward" disabled>
+                <i class="ph ph-arrow-right"></i>
+            </button>
+            <button class="fm-toolbar-btn" onclick="goUp()" id="btn-up" disabled>
+                <i class="ph ph-arrow-up"></i>
+            </button>
+            <button class="fm-toolbar-btn" onclick="refresh()">
+                <i class="ph ph-arrows-clockwise"></i>
+            </button>
+
+            <div class="fm-breadcrumb" id="breadcrumb">
+                <span class="fm-breadcrumb-item">Este equipo</span>
+            </div>
+
+            <div class="fm-view-toggle">
+                <button class="fm-view-btn active" onclick="setView('grid')" id="view-grid">
+                    <i class="ph ph-squares-four"></i>
+                </button>
+                <button class="fm-view-btn" onclick="setView('list')" id="view-list">
+                    <i class="ph ph-list"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="fm-content" id="file-content">
+            <div class="fm-loading">
+                <i class="ph ph-spinner-gap"></i>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="fm-statusbar">
+            <span id="item-count">0 elementos</span>
+            <span id="selected-info"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let currentRoot = 'servers';
+    let currentPath = '';
+    let currentView = 'grid';
+    let historyStack = [];
+    let historyIndex = -1;
+    let selectedItem = null;
+
+    // Windows 11 style icons by extension
+    const fileIcons = {
+        // Archives
+        '.jar': 'ph-file-archive',
+        '.zip': 'ph-file-zip',
+        '.gz': 'ph-file-zip',
+        '.tar': 'ph-file-zip',
+        '.rar': 'ph-file-zip',
+        '.7z': 'ph-file-zip',
+        // Code/Config
+        '.json': 'ph-file-code',
+        '.properties': 'ph-gear',
+        '.yml': 'ph-file-code',
+        '.yaml': 'ph-file-code',
+        '.xml': 'ph-file-code',
+        '.conf': 'ph-gear',
+        '.cfg': 'ph-gear',
+        '.ini': 'ph-gear',
+        '.toml': 'ph-gear',
+        // Text
+        '.txt': 'ph-file-text',
+        '.log': 'ph-article',
+        '.md': 'ph-file-text',
+        // Data
+        '.dat': 'ph-database',
+        '.mca': 'ph-cube',
+        '.nbt': 'ph-cube',
+        '.db': 'ph-database',
+        '.sql': 'ph-database',
+        // Images
+        '.png': 'ph-file-image',
+        '.jpg': 'ph-file-image',
+        '.jpeg': 'ph-file-image',
+        '.gif': 'ph-file-image',
+        '.bmp': 'ph-file-image',
+        '.webp': 'ph-file-image',
+        '.ico': 'ph-file-image',
+        // Video
+        '.mp4': 'ph-file-video',
+        '.webm': 'ph-file-video',
+        '.avi': 'ph-file-video',
+        '.mkv': 'ph-file-video',
+        // Audio
+        '.mp3': 'ph-file-audio',
+        '.wav': 'ph-file-audio',
+        '.ogg': 'ph-file-audio',
+        // Executables
+        '.exe': 'ph-app-window',
+        '.bat': 'ph-terminal',
+        '.sh': 'ph-terminal',
+        '.ps1': 'ph-terminal',
+        'default': 'ph-file'
+    };
+
+    // Media extensions for Photos viewer
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico'];
+    const videoExtensions = ['.mp4', '.webm', '.avi', '.mkv'];
+
+    function getFileIcon(item) {
+        if (item.is_dir) return 'ph-folder';
+        return fileIcons[item.extension] || fileIcons['default'];
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '-';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length - 1) {
+            bytes /= 1024;
+            i++;
+        }
+        return `${bytes.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+    }
+
+    function formatDate(timestamp) {
+        return new Date(timestamp * 1000).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    async function loadDirectory(root, path = '', addToHistory = true) {
+        const content = document.getElementById('file-content');
+        content.innerHTML = '<div class="fm-loading"><i class="ph ph-spinner-gap"></i></div>';
+
+        try {
+            const token = localStorage.getItem('token');
+            const encodedPath = encodeURIComponent(path);
+            const url = `/api/files/browse/${root}${path ? `?path=${encodedPath}` : ''}`;
+            
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (res.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error('Failed to load directory');
+            }
+
+            const data = await res.json();
+            
+            currentRoot = root;
+            currentPath = path;
+            
+            if (addToHistory) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+                historyStack.push({ root, path });
+                historyIndex = historyStack.length - 1;
+            }
+            
+            updateUI(data);
+            updateNavigation();
+            
+        } catch (e) {
+            console.error('Error loading directory:', e);
+            content.innerHTML = `
+                <div class="fm-empty">
+                    <i class="ph ph-warning"></i>
+                    <p>Error al cargar el directorio</p>
+                </div>
+            `;
+        }
+    }
+
+    function updateUI(data) {
+        const content = document.getElementById('file-content');
+        
+        // Update nav active state
+        document.querySelectorAll('.fm-nav-item').forEach(item => item.classList.remove('active'));
+        document.getElementById(`nav-${currentRoot}`)?.classList.add('active');
+
+        // Update breadcrumb
+        updateBreadcrumb(data);
+
+        // Update buttons
+        document.getElementById('btn-back').disabled = historyIndex <= 0;
+        document.getElementById('btn-forward').disabled = historyIndex >= historyStack.length - 1;
+        document.getElementById('btn-up').disabled = !currentPath;
+
+        // Render items
+        if (data.items.length === 0) {
+            content.innerHTML = `
+                <div class="fm-empty">
+                    <i class="ph ph-folder-open"></i>
+                    <p>Esta carpeta está vacía</p>
+                </div>
+            `;
+        } else {
+            const viewClass = currentView === 'grid' ? 'fm-grid' : 'fm-list';
+            content.innerHTML = `<div class="${viewClass}">${data.items.map(item => renderItem(item)).join('')}</div>`;
+        }
+
+        // Update status bar
+        document.getElementById('item-count').textContent = `${data.items.length} elementos`;
+        document.getElementById('selected-info').textContent = '';
+        selectedItem = null;
+    }
+
+    function renderItem(item) {
+        const icon = getFileIcon(item);
+        const iconClass = item.is_dir ? 'folder' : 'file';
+        
+        if (currentView === 'grid') {
+            return `
+                <div class="fm-item" ondblclick="openItem('${item.name}', ${item.is_dir})" onclick="selectItem(this, '${item.name}', ${item.is_dir}, ${item.size})">
+                    <div class="fm-item-icon ${iconClass}">
+                        <i class="ph ${icon}"></i>
+                    </div>
+                    <span class="fm-item-name">${item.name}</span>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="fm-item" ondblclick="openItem('${item.name}', ${item.is_dir})" onclick="selectItem(this, '${item.name}', ${item.is_dir}, ${item.size})">
+                    <div class="fm-item-icon ${iconClass}">
+                        <i class="ph ${icon}"></i>
+                    </div>
+                    <span class="fm-item-name">${item.name}</span>
+                    <span class="fm-item-meta">${formatSize(item.size)}</span>
+                    <span class="fm-item-meta">${item.modified ? formatDate(item.modified) : '-'}</span>
+                </div>
+            `;
+        }
+    }
+
+    function updateBreadcrumb(data) {
+        const breadcrumb = document.getElementById('breadcrumb');
+        const rootNames = { servers: 'Servidores', worlds: 'Mundos', versions: 'Versiones' };
+        
+        let html = `<span class="fm-breadcrumb-item" onclick="navigateToRoot('${currentRoot}')">${rootNames[currentRoot]}</span>`;
+        
+        if (currentPath) {
+            const parts = currentPath.split('/').filter(p => p);
+            let pathSoFar = '';
+            
+            for (const part of parts) {
+                pathSoFar += (pathSoFar ? '/' : '') + part;
+                html += `<span class="fm-breadcrumb-separator"><i class="ph ph-caret-right"></i></span>`;
+                html += `<span class="fm-breadcrumb-item" onclick="loadDirectory('${currentRoot}', '${pathSoFar}')">${part}</span>`;
+            }
+        }
+        
+        breadcrumb.innerHTML = html;
+    }
+
+    function updateNavigation() {
+        document.getElementById('btn-back').disabled = historyIndex <= 0;
+        document.getElementById('btn-forward').disabled = historyIndex >= historyStack.length - 1;
+        document.getElementById('btn-up').disabled = !currentPath;
+    }
+
+    function navigateToRoot(root) {
+        loadDirectory(root, '');
+    }
+
+    function openItem(name, isDir) {
+        if (isDir) {
+            const newPath = currentPath ? `${currentPath}/${name}` : name;
+            loadDirectory(currentRoot, newPath);
+        } else {
+            const ext = '.' + name.split('.').pop().toLowerCase();
+            const filePath = currentPath ? `${currentPath}/${name}` : name;
+            
+            // Check if it's an image - open in Photos
+            if (imageExtensions.includes(ext)) {
+                openInPhotos(currentRoot, filePath, name);
+            }
+            // Check if it's a video - open in Photos (video mode)
+            else if (videoExtensions.includes(ext)) {
+                openInPhotos(currentRoot, filePath, name, true);
+            }
+            // Try to open everything else as text
+            else {
+                openInNotepad(currentRoot, filePath, name);
+            }
+        }
+    }
+
+    function selectItem(element, name, isDir, size) {
+        document.querySelectorAll('.fm-item').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        selectedItem = { name, isDir, size };
+        
+        document.getElementById('selected-info').textContent = 
+            `Seleccionado: ${name}` + (isDir ? '' : ` (${formatSize(size)})`);
+    }
+
+    function goBack() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            const { root, path } = historyStack[historyIndex];
+            loadDirectory(root, path, false);
+        }
+    }
+
+    function goForward() {
+        if (historyIndex < historyStack.length - 1) {
+            historyIndex++;
+            const { root, path } = historyStack[historyIndex];
+            loadDirectory(root, path, false);
+        }
+    }
+
+    function goUp() {
+        if (currentPath) {
+            const parts = currentPath.split('/');
+            parts.pop();
+            loadDirectory(currentRoot, parts.join('/'));
+        }
+    }
+
+    function refresh() {
+        loadDirectory(currentRoot, currentPath, false);
+    }
+
+    function setView(view) {
+        currentView = view;
+        document.getElementById('view-grid').classList.toggle('active', view === 'grid');
+        document.getElementById('view-list').classList.toggle('active', view === 'list');
+        refresh();
+    }
+
+    // ============================================
+    // PHOTOS VIEWER
+    // ============================================
+    async function openInPhotos(root, path, name, isVideo = false) {
+        const overlay = document.getElementById('photos-overlay');
+        const img = document.getElementById('photos-image');
+        const video = document.getElementById('photos-video');
+        const title = document.getElementById('photos-title');
+        
+        // Reset state
+        img.src = '';
+        video.src = '';
+        img.style.display = 'none';
+        video.style.display = 'none';
+        title.textContent = name;
+        overlay.classList.add('visible');
+        
+        try {
+            const token = localStorage.getItem('token');
+            const mediaUrl = `/api/files/browse/${root}/media?path=${encodeURIComponent(path)}`;
+            
+            // Fetch with auth header
+            const res = await fetch(mediaUrl, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!res.ok) throw new Error('Failed to load media');
+            
+            const blob = await res.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            
+            if (isVideo) {
+                video.style.display = 'block';
+                video.src = objectUrl;
+                try { await video.play(); } catch(e) { console.log('Autoplay blocked'); }
+            } else {
+                img.style.display = 'block';
+                img.src = objectUrl;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error al cargar multimedia: ' + e.message);
+            closePhotos();
+        }
+    }
+
+    function closePhotos() {
+        const overlay = document.getElementById('photos-overlay');
+        const video = document.getElementById('photos-video');
+        const img = document.getElementById('photos-image');
+        
+        video.pause();
+        if (video.src) URL.revokeObjectURL(video.src);
+        if (img.src) URL.revokeObjectURL(img.src);
+        
+        video.src = '';
+        img.src = '';
+        overlay.classList.remove('visible');
+    }
+
+    // ============================================
+    // NOTEPAD FUNCTIONS
+    // ============================================
+    let openTabs = [];
+    let activeTabIndex = -1;
+    // Only restrict archives and known media (that should be opened in photos)
+    const restrictedExtensions = [
+        // Archives
+        '.jar', '.zip', '.gz', '.tar', '.rar', '.7z',
+        // Media (handled by Photos)
+        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico',
+        '.mp4', '.webm', '.avi', '.mkv', '.mp3', '.wav', '.ogg',
+        // Executables
+        '.exe', '.dll', '.so', '.dylib'
+    ];
+
+    async function openInNotepad(root, path, name) {
+        const ext = '.' + name.split('.').pop().toLowerCase();
+        
+        // Check if restricted
+        if (restrictedExtensions.includes(ext)) {
+            alert('Este archivo no se puede editar en el Bloc de notas. (Es un archivo multimedia, ejecutable o comprimido)');
+            return;
+        }
+
+        // Check if already open
+        const existingIndex = openTabs.findIndex(t => t.root === root && t.path === path);
+        if (existingIndex !== -1) {
+            switchTab(existingIndex);
+            showNotepad();
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const encodedPath = encodeURIComponent(path);
+            const res = await fetch(`/api/files/browse/${root}/content?path=${encodedPath}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                alert(err.detail || 'Error al abrir el archivo');
+                return;
+            }
+
+            const data = await res.json();
+            
+            // Add new tab
+            openTabs.push({
+                root: root,
+                path: path,
+                name: data.name,
+                content: data.content,
+                originalContent: data.content,
+                modified: false
+            });
+
+            activeTabIndex = openTabs.length - 1;
+            renderTabs();
+            showNotepad();
+
+        } catch (e) {
+            console.error('Error opening file:', e);
+            alert('Error al abrir el archivo');
+        }
+    }
+
+    function showNotepad() {
+        document.getElementById('notepad-overlay').classList.add('visible');
+        updateEditorDisplay();
+    }
+
+    function closeNotepad() {
+        // Check for unsaved changes
+        const unsaved = openTabs.filter(t => t.modified);
+        if (unsaved.length > 0) {
+            if (!confirm(`Hay ${unsaved.length} archivo(s) sin guardar. ¿Cerrar de todos modos?`)) {
+                return;
+            }
+        }
+        
+        openTabs = [];
+        activeTabIndex = -1;
+        document.getElementById('notepad-overlay').classList.remove('visible');
+    }
+
+    function minimizeNotepad() {
+        document.getElementById('notepad-overlay').classList.remove('visible');
+    }
+
+    function maximizeNotepad() {
+        const win = document.querySelector('.notepad-window');
+        win.classList.toggle('maximized');
+    }
+
+    function renderTabs() {
+        const container = document.getElementById('notepad-tabs');
+        container.innerHTML = openTabs.map((tab, index) => `
+            <button class="notepad-tab ${index === activeTabIndex ? 'active' : ''} ${tab.modified ? 'modified' : ''}"
+                    onclick="switchTab(${index})">
+                <span>${tab.name}</span>
+                <button class="notepad-tab-close" onclick="event.stopPropagation(); closeTab(${index})">
+                    <i class="ph ph-x"></i>
+                </button>
+            </button>
+        `).join('');
+    }
+
+    function switchTab(index) {
+        if (index < 0 || index >= openTabs.length) return;
+        
+        // Save current textarea content to current tab
+        if (activeTabIndex >= 0 && activeTabIndex < openTabs.length) {
+            openTabs[activeTabIndex].content = document.getElementById('notepad-textarea').value;
+        }
+        
+        activeTabIndex = index;
+        renderTabs();
+        updateEditorDisplay();
+    }
+
+    function closeTab(index) {
+        const tab = openTabs[index];
+        
+        if (tab.modified) {
+            if (!confirm(`"${tab.name}" tiene cambios sin guardar. ¿Cerrar de todos modos?`)) {
+                return;
+            }
+        }
+        
+        openTabs.splice(index, 1);
+        
+        if (openTabs.length === 0) {
+            closeNotepad();
+            return;
+        }
+        
+        if (activeTabIndex >= openTabs.length) {
+            activeTabIndex = openTabs.length - 1;
+        } else if (activeTabIndex > index) {
+            activeTabIndex--;
+        }
+        
+        renderTabs();
+        updateEditorDisplay();
+    }
+
+    function updateEditorDisplay() {
+        if (activeTabIndex < 0 || activeTabIndex >= openTabs.length) return;
+        
+        const tab = openTabs[activeTabIndex];
+        document.getElementById('notepad-title').textContent = `${tab.name} - Bloc de notas`;
+        document.getElementById('notepad-textarea').value = tab.content;
+        updateCursorPosition();
+        updateCharCount();
+    }
+
+    function onEditorInput() {
+        if (activeTabIndex < 0) return;
+        
+        const textarea = document.getElementById('notepad-textarea');
+        const tab = openTabs[activeTabIndex];
+        tab.content = textarea.value;
+        tab.modified = tab.content !== tab.originalContent;
+        
+        // Update tab modified state
+        const tabBtn = document.querySelector(`.notepad-tab:nth-child(${activeTabIndex + 1})`);
+        if (tabBtn) {
+            tabBtn.classList.toggle('modified', tab.modified);
+        }
+        
+        updateCharCount();
+    }
+
+    function updateCursorPosition() {
+        const textarea = document.getElementById('notepad-textarea');
+        const text = textarea.value.substring(0, textarea.selectionStart);
+        const lines = text.split('\n');
+        const line = lines.length;
+        const col = lines[lines.length - 1].length + 1;
+        
+        document.getElementById('notepad-cursor').textContent = `Ln ${line}, Col ${col}`;
+    }
+
+    function updateCharCount() {
+        const textarea = document.getElementById('notepad-textarea');
+        document.getElementById('notepad-chars').textContent = `${textarea.value.length} caracteres`;
+    }
+
+    function handleEditorKeydown(event) {
+        // Update cursor position on any key
+        setTimeout(updateCursorPosition, 0);
+        
+        // Ctrl+S to save
+        if (event.ctrlKey && event.key === 's') {
+            event.preventDefault();
+            saveCurrentFile();
+        }
+    }
+
+    async function saveCurrentFile() {
+        if (activeTabIndex < 0) return;
+        
+        const tab = openTabs[activeTabIndex];
+        
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`/api/files/browse/${tab.root}/save`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: tab.path,
+                    content: tab.content
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                alert(err.detail || 'Error al guardar');
+                return;
+            }
+
+            // Update saved state
+            tab.originalContent = tab.content;
+            tab.modified = false;
+            renderTabs();
+            
+            // Show feedback
+            const title = document.getElementById('notepad-title');
+            title.textContent = `${tab.name} - Guardado ✓`;
+            setTimeout(() => {
+                title.textContent = `${tab.name} - Bloc de notas`;
+            }, 1500);
+
+        } catch (e) {
+            console.error('Error saving file:', e);
+            alert('Error al guardar el archivo');
+        }
+    }
+
+    // Click listener for cursor position updates
+    document.getElementById('notepad-textarea')?.addEventListener('click', updateCursorPosition);
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDirectory('servers', '');
+    });
+</script>
+{% endblock %}

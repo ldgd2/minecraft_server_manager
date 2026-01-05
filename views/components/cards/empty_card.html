@@ -1,0 +1,14 @@
+<!-- Card: Empty State Card -->
+<div class="empty-card">
+    <div class="empty-card-icon">
+        <img src="/source/svg/icons/{{ icon }}.svg" alt="" class="svg-icon svg-icon--xl">
+    </div>
+    <h3 class="empty-card-title">{{ title }}</h3>
+    <p class="empty-card-description">{{ description }}</p>
+    {% if action_text %}
+    <button class="btn btn-primary" onclick="{{ action_onclick }}">
+        <ion-icon name="{{ action_icon }}"></ion-icon>
+        {{ action_text }}
+    </button>
+    {% endif %}
+</div>

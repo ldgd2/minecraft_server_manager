@@ -1,0 +1,170 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Worlds{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <img src="/source/png/worlds.png" class="icon-img icon-img--lg">
+        <h1>World Management</h1>
+    </div>
+    <button class="btn btn-primary" onclick="views.modals.open('upload-world-modal')">
+        <img src="/source/png/on.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1); transform: rotate(-90deg)">
+        Upload World
+    </button>
+</div>
+
+<!-- Summary Widgets -->
+<div class="summary-grid" style="margin-bottom: 2rem;">
+    <div class="summary-widget">
+        <div class="summary-widget-icon">
+            <img src="/source/png/worlds.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="total-worlds">0</span>
+            <span class="summary-widget-label">Total Worlds</span>
+        </div>
+    </div>
+    <div class="summary-widget">
+        <div class="summary-widget-icon">
+            <img src="/source/png/server.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="assigned-count">0</span>
+            <span class="summary-widget-label">Assigned to Servers</span>
+        </div>
+    </div>
+    <div class="summary-widget">
+        <div class="summary-widget-icon">
+            <img src="/source/png/disk.png" class="icon-img">
+        </div>
+        <div class="summary-widget-content">
+            <span class="summary-widget-count" id="total-size">0 GB</span>
+            <span class="summary-widget-label">Total Storage</span>
+        </div>
+    </div>
+</div>
+
+<!-- Worlds Grid -->
+<div class="server-grid" id="worlds-grid">
+    <div class="loading">
+        <div class="loading-spinner"></div>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="empty-state" class="hidden">
+    <div class="empty-card">
+        <div class="empty-card-icon">
+            <img src="/source/png/worlds.png" class="icon-img icon-img--xl">
+        </div>
+        <h3 class="empty-card-title">No Worlds Yet</h3>
+        <p class="empty-card-description">Upload a world backup to get started.</p>
+        <button class="btn btn-primary" onclick="views.modals.open('upload-world-modal')">
+            <img src="/source/png/on.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1); transform: rotate(-90deg)">
+            Upload World
+        </button>
+    </div>
+</div>
+
+<!-- Upload World Modal -->
+<div id="upload-world-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="views.modals.close('upload-world-modal')"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <img src="/source/png/worlds.png" class="icon-img">
+                Upload World
+            </h2>
+            <button class="modal-close" onclick="views.modals.close('upload-world-modal')">
+                <img src="/source/png/logout.png" class="png-icon png-icon--xs" style="transform: rotate(45deg)">
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">World Name</label>
+                <input type="text" id="world-name" class="form-input" placeholder="My World">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Seed (optional)</label>
+                    <input type="text" id="world-seed" class="form-input" placeholder="e.g., 123456789">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <img src="/source/png/version.png" class="icon-img icon-img--xs">
+                        Original Version
+                    </label>
+                    <select id="world-version" class="form-input">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">World Folder (ZIP)</label>
+                <input type="file" id="world-file" class="form-input" accept=".zip">
+                <span class="form-hint">Upload a ZIP file containing your world folder</span>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="views.modals.close('upload-world-modal')">
+                Cancel
+            </button>
+            <button class="btn btn-primary" onclick="views.worlds.upload()">
+                <img src="/source/png/disk.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1);">
+                Upload
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Assign World Modal -->
+<div id="assign-world-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="views.modals.close('assign-world-modal')"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <img src="/source/png/server.png" class="icon-img">
+                Assign to Servers
+            </h2>
+            <button class="modal-close" onclick="views.modals.close('assign-world-modal')">
+                <img src="/source/png/logout.png" class="png-icon png-icon--xs" style="transform: rotate(45deg)">
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <p style="margin-bottom: 1rem;">
+                Select servers to copy <strong id="assign-world-name"></strong> to:
+            </p>
+            
+            <div id="server-select-list" class="server-select-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="views.modals.close('assign-world-modal')">
+                Cancel
+            </button>
+            <button class="btn btn-success" onclick="views.worlds.assignToServers()">
+                <img src="/source/png/server.png" class="png-icon png-icon--sm" style="filter: brightness(0) invert(1);">
+                Copy to Selected
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        app.checkAuth();
+        views.worlds.init();
+    });
+</script>
+{% endblock %}

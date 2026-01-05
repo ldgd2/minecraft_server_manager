@@ -1,0 +1,74 @@
+<!-- Card: Server Overview Card with Status & Actions -->
+<div class="server-card {{ 'server-card--online' if status == 'ONLINE' else 'server-card--offline' }}" data-server="{{ name }}">
+    <div class="server-card-header">
+        <div class="server-card-status">
+            <img src="/source/png/{{ 'on' if status == 'ONLINE' else 'of' }}.png" alt="{{ status }}" class="png-icon png-icon--md">
+        </div>
+        <h3 class="server-card-title">{{ name }}</h3>
+        <div class="server-card-actions">
+            <button class="icon-btn" onclick="views.servers.edit('{{ name }}')" title="Edit">
+                <img src="/source/png/config.png" class="png-icon png-icon--xs">
+            </button>
+            <button class="icon-btn icon-btn--danger" onclick="views.servers.confirmDelete('{{ name }}')" title="Delete">
+                <img src="/source/png/logout.png" class="png-icon png-icon--xs" style="transform: rotate(90deg)">
+            </button>
+        </div>
+    </div>
+    
+    <div class="server-card-body">
+        <div class="server-card-info">
+            <div class="info-row">
+                <img src="/source/png/version.png" class="png-icon png-icon--xs">
+                <span>{{ version }}</span>
+            </div>
+            <div class="info-row">
+                <img src="/source/png/{{ mod_loader|lower }}.png" onerror="this.src='/source/png/mod.png'" class="png-icon png-icon--xs">
+                <span>{{ mod_loader }}</span>
+            </div>
+            <div class="info-row">
+                <img src="/source/png/player.png" class="png-icon png-icon--xs">
+                <span>{{ players }}/{{ max_players }}</span>
+            </div>
+            <div class="info-row" title="Click to copy IP" style="cursor: pointer;" onclick="navigator.clipboard.writeText('localhost:{{ port }}'); alert('IP Copied!')">
+                <img src="/source/png/world.png" onerror="this.src='/source/png/config.png'" class="png-icon png-icon--xs">
+                <span>localhost:{{ port }}</span>
+            </div>
+        </div>
+        
+        <div class="server-card-resources">
+            <div class="resource-mini">
+                <img src="/source/png/cpu.png" class="png-icon png-icon--xs">
+                <div class="resource-mini-bar">
+                    <div class="resource-mini-progress" style="--progress: {{ cpu_percent }}%"></div>
+                </div>
+                <span>{{ cpu_cores }} cores</span>
+            </div>
+            <div class="resource-mini">
+                <img src="/source/png/ram.png" class="png-icon png-icon--xs">
+                <div class="resource-mini-bar">
+                    <div class="resource-mini-progress" style="--progress: {{ ram_percent }}%"></div>
+                </div>
+                <span>{{ ram_mb }}MB</span>
+            </div>
+            <div class="resource-mini">
+                <img src="/source/png/disk.png" class="png-icon png-icon--xs">
+                <div class="resource-mini-bar">
+                    <div class="resource-mini-progress" style="--progress: {{ disk_percent }}%"></div>
+                </div>
+                <span>{{ disk_mb }}MB</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="server-card-footer">
+        <button class="btn btn-sm {{ 'btn-danger' if status == 'ONLINE' else 'btn-success' }}" 
+                onclick="views.servers.toggle('{{ name }}', '{{ status }}')">
+            <img src="/source/png/{{ 'of' if status == 'ONLINE' else 'on' }}.png" class="png-icon png-icon--sm">
+            {{ 'Stop' if status == 'ONLINE' else 'Start' }}
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="window.location.href='/server/{{ name }}'">
+            <img src="/source/png/terminal.png" class="png-icon png-icon--sm">
+            Console
+        </button>
+    </div>
+</div>

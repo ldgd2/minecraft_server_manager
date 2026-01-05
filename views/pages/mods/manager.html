@@ -1,0 +1,141 @@
+{% extends "components/layout.html" %}
+
+{% block title %}Plugin Manager - {{ server_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <img src="/source/png/plugin.png" class="icon-img icon-img--lg">
+        <div>
+            <h1 style="margin-bottom: 0;">Plugin Manager</h1>
+            <p class="text-muted" style="margin-top: 0.25rem;">Managing <strong>{{ server_name }}</strong></p>
+        </div>
+    </div>
+    <div class="flex-row">
+        <a href="/modloaders" class="btn btn-outline">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+            Back to Modloaders
+        </a>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tabs" style="margin-bottom: 2rem;">
+    <button class="tab-btn active" onclick="views.paper.switchTab('search')" id="tab-btn-search">
+        <ion-icon name="search-outline"></ion-icon> Search Plugins
+    </button>
+    <button class="tab-btn" onclick="views.paper.switchTab('installed')" id="tab-btn-installed">
+        <ion-icon name="folder-open-outline"></ion-icon> My Plugins
+    </button>
+</div>
+
+<!-- Search Content -->
+<div id="tab-content-search">
+    <div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
+        <div class="search-widget" id="plugin-search-widget">
+            <div class="search-bar-container">
+                <div class="search-input-group">
+                    <ion-icon name="search-outline" class="search-icon"></ion-icon>
+                    <input type="text" id="plugin-search-query" placeholder="Search plugins (e.g. Essentials, Vault)..." class="search-input" onkeydown="if(event.key==='Enter') views.paper.search()">
+                </div>
+                
+                <div class="search-filters">
+                    <select id="plugin-sort-filter" class="search-select">
+                        <option value="estrellas">Stars</option>
+                        <option value="descargas_recientes">Recent Downloads</option>
+                        <option value="mas_descargados">Most Downloaded</option>
+                        <option value="actualizados">Recently Updated</option>
+                        <option value="nuevos">Newest</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary search-btn" onclick="views.paper.search()">
+                    Search Plugins
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="plugin-list" id="plugin-results-grid">
+        <div class="empty-state">
+            <ion-icon name="cube-outline" class="empty-icon"></ion-icon>
+            <h3>Search for Plugins</h3>
+            <p>Find and install plugins from Hangar directly to your server.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Installed Content -->
+<div id="tab-content-installed" class="hidden">
+    <div class="flex-row" style="justify-content: flex-end; margin-bottom: 1rem;">
+        <button class="btn btn-danger btn-sm" onclick="views.paper.deleteSelected()">
+            <ion-icon name="trash-outline"></ion-icon> Delete Selected
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="views.paper.loadInstalled()">
+            <ion-icon name="refresh-outline"></ion-icon> Refresh
+        </button>
+    </div>
+    
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th width="40"><input type="checkbox" onchange="views.paper.toggleSelectAll(this)"></th>
+                        <th>Filename</th>
+                        <th>Location</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="installed-plugins-list">
+                    <!-- Installed plugins injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Inline styles (Consolidate later) */
+    .tabs { display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+    .tab-btn { background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; border-radius: var(--radius); transition: all 0.2s; }
+    .tab-btn:hover { color: var(--text); background: var(--bg-hover); }
+    .tab-btn.active { color: var(--primary); background: rgba(99, 102, 241, 0.1); font-weight: 500; }
+    
+    /* ... Existing styles ... */
+    .search-input-group { flex: 1; position: relative; display: flex; align-items: center; }
+    .search-icon { position: absolute; left: 1rem; color: var(--text-muted); font-size: 1.2rem; }
+    .search-input { width: 100%; padding: 0.75rem 1rem 0.75rem 3rem; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius); color: var(--text); font-size: 1rem; transition: all 0.2s; }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); outline: none; }
+    .search-select { padding: 0.75rem 2rem 0.75rem 1rem; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius); color: var(--text); cursor: pointer; min-width: 150px; }
+    .search-bar-container { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .plugin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+    .plugin-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.5rem; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; gap: 1rem; }
+    .plugin-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+    .plugin-header { display: flex; justify-content: space-between; align-items: start; }
+    .plugin-title { font-size: 1.1rem; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+    .plugin-author { font-size: 0.875rem; color: var(--text-muted); }
+    .plugin-desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .plugin-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+    .empty-state { grid-column: 1 / -1; text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .table th { font-weight: 500; color: var(--text-muted); font-size: 0.9rem; }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+    .badge-normal { background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+</style>
+
+<script>
+    const SERVER_NAME = "{{ server_name }}";
+    document.addEventListener("DOMContentLoaded", () => {
+        app.checkAuth();
+        views.server.currentName = SERVER_NAME; 
+        views.paper.loadInstalled(); // Pre-load? Or wait for tab?
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,293 @@
+{% extends "components/layout.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="/views/app/css/apps.css">
+<style>
+    /* Store Specific Styles */
+    .store-container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .store-sidebar {
+        width: 280px;
+        background-color: var(--mica-bg);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        padding: 24px 12px;
+    }
+
+    .store-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        background-color: var(--bg-color);
+        position: relative;
+    }
+
+    .store-hero {
+        height: 300px;
+        background: linear-gradient(135deg, #0078d4 0%, #00bcf2 100%);
+        color: white;
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+
+    .store-search {
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        height: 32px;
+        width: 300px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        color: var(--text-color);
+    }
+    
+    .mod-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+        padding: 24px;
+    }
+
+    .mod-card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .mod-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .mod-icon {
+        width: 64px;
+        height: 64px;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        align-self: flex-start;
+        object-fit: cover;
+    }
+
+    .upload-area {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        color: var(--text-secondary);
+        background-color: var(--surface-color);
+        margin: 24px;
+        transition: border-color 0.2s;
+    }
+
+    .upload-area:hover {
+        border-color: var(--win-primary);
+        background-color: rgba(0, 120, 212, 0.05);
+    }
+</style>
+
+<div id="server-selector" class="p-8 flex flex-col items-center justify-center h-full">
+    <h1 class="text-3xl font-light mb-8">Select a Server to Manage</h1>
+    <div id="device-grid" class="flex flex-wrap justify-center gap-6 max-w-5xl">
+        <!-- Rendered by JS -->
+        <div class="animate-pulse w-64 h-32 bg-gray-700/50 rounded-lg"></div>
+    </div>
+</div>
+
+<div id="store-interface" class="store-container hidden">
+    <!-- Sidebar -->
+    <div class="store-sidebar">
+        <div class="mb-6 px-4">
+            <h2 class="text-xl font-semibold mb-1">Mod Store</h2>
+            <p id="current-server-name" class="text-xs text-gray-500">Connected to Server</p>
+        </div>
+
+        <nav class="flex flex-col gap-1">
+            <a href="#" class="nav-item active" onclick="views.modloader.showTab('home')">
+                <i class="ph ph-house"></i> Home
+            </a>
+            <a href="#" class="nav-item" onclick="views.modloader.showTab('library')">
+                <i class="ph ph-books"></i> Library (My Mods)
+            </a>
+            <hr class="border-gray-700/50 my-2 mx-4">
+            <a href="#" class="nav-item" onclick="views.modloader.showTab('upload')">
+                <i class="ph ph-upload-simple"></i> Manual Upload
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="store-content">
+        <!-- Header -->
+        <header class="h-16 flex items-center justify-between px-8 bg-opacity-90 backdrop-blur sticky top-0 z-10 border-b border-gray-700/30">
+            <div class="flex items-center gap-4">
+                <button class="win-btn" onclick="views.modloader.goBack()">Change Server</button>
+            </div>
+            <div class="store-search">
+                <i class="ph ph-magnifying-glass text-gray-400 mr-2"></i>
+                <input type="text" id="store-search-input" placeholder="Search mods..." class="bg-transparent border-none outline-none w-full text-sm" onkeyup="if(event.key === 'Enter') views.modloader.search(this.value)">
+            </div>
+        </header>
+
+        <!-- Tab: Home -->
+        <div id="tab-home" class="tab-view">
+             <!-- Hero -->
+             <div class="store-hero">
+                 <h1 class="text-4xl font-bold mb-2">Essential Mods</h1>
+                 <p class="text-lg opacity-90">Enhance your server with the most popular performance and utility mods.</p>
+             </div>
+             
+             <div class="px-8 py-4">
+                 <h2 class="text-xl font-semibold mb-4">Featured</h2>
+                 <div class="mod-grid" id="featured-mods">
+                     <!-- Populated by JS -->
+                 </div>
+                 
+                 <h2 class="text-xl font-semibold mb-4 mt-8">Search Results</h2>
+                 <div class="mod-grid" id="search-results">
+                     <p class="text-gray-500 col-span-full">Type in the search bar to find mods.</p>
+                 </div>
+             </div>
+        </div>
+
+        <!-- Tab: Library -->
+        <div id="tab-library" class="tab-view hidden">
+            <div class="p-8">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h1 class="text-3xl font-semibold">My Mods</h1>
+                        <p class="text-gray-400">Manage installed mods and plugins.</p>
+                    </div>
+                    <button class="win-btn win-btn-primary" onclick="views.modloader.checkForUpdates()">Get Updates</button>
+                </div>
+                
+                <div class="mod-grid" id="installed-mods">
+                    <p class="text-gray-500 col-span-full">Loading installed mods...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Upload -->
+        <div id="tab-upload" class="tab-view hidden">
+             <div class="p-8">
+                <h1 class="text-3xl font-semibold mb-6">Upload Files</h1>
+                
+                <div class="upload-area" ondragover="event.preventDefault()" ondrop="views.modloader.handleDrop(event)">
+                    <i class="ph ph-cloud-arrow-up text-6xl mb-4 text-gray-400"></i>
+                    <h3 class="text-lg font-medium mb-2">Drag and drop files here</h3>
+                    <p class="text-sm text-gray-500 mb-4">Supports .jar, .zip</p>
+                    <button class="win-btn win-btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
+                    <input type="file" id="file-input" class="hidden" multiple accept=".jar,.zip" onchange="views.modloader.handleUpload(this.files)">
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-medium mb-4">Upload Queue</h3>
+                    <div id="upload-queue" class="space-y-2">
+                        <!-- Queue items -->
+                    </div>
+                </div>
+             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mod Detail Modal -->
+<div id="mod-detail-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-[#202020] w-[800px] h-[600px] rounded-xl shadow-2xl border border-[#454545] flex flex-col animate-pop-up overflow-hidden">
+        <!-- Header Image/Banner -->
+        <div class="h-48 bg-blue-600 relative overflow-hidden">
+             <!-- Could load a banner image here -->
+             <div class="absolute inset-0 bg-gradient-to-t from-[#202020] to-transparent"></div>
+             <button class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white backdrop-blur" onclick="document.getElementById('mod-detail-modal').classList.add('hidden')">
+                 <i class="ph ph-x"></i>
+             </button>
+        </div>
+        
+        <div class="p-8 flex-1 overflow-y-auto -mt-12 relative z-10">
+             <div class="flex gap-6 mb-6">
+                 <img id="detail-icon" src="" class="w-32 h-32 rounded-lg bg-gray-800 shadow-lg object-cover">
+                 <div class="flex-1 pt-12">
+                     <h1 id="detail-title" class="text-3xl font-bold mb-1">Mod Name</h1>
+                     <div class="flex gap-4 text-sm text-gray-400 mb-4">
+                         <span id="detail-author">Author</span>
+                         <span>•</span>
+                         <span id="detail-downloads">0 Downloads</span>
+                     </div>
+                     <button id="detail-action-btn" class="win-btn win-btn-primary px-8 py-2 text-lg">
+                         Install
+                     </button>
+                 </div>
+             </div>
+             
+             <div class="prose prose-invert max-w-none">
+                 <h3 class="text-lg font-semibold mb-2">Description</h3>
+                 <p id="detail-description" class="text-gray-300 leading-relaxed">
+                     Mod description goes here...
+                 </p>
+             </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+         app.checkAuth();
+         // Temporary simple logic -> Move to app.js properly later or define here
+         // I'll attach a minimal controller here for the "Selector" part
+         
+         loadServers();
+    });
+
+    async function loadServers() {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/servers", { headers: { 'Authorization': `Bearer ${token}` } });
+            const servers = await res.json();
+            
+            const container = document.getElementById("device-grid");
+            if(servers.length === 0) {
+                container.innerHTML = '<p>No servers found.</p>';
+                return;
+            }
+
+            container.innerHTML = servers.map(s => `
+                <div class="bg-[#2b2b2b] p-6 rounded-lg w-64 border border-[#454545] hover:border-[#0078d4] cursor-pointer transition-all hover:scale-105" onclick="selectServer('${s.name}', '${s.mod_loader || 'Unknown'}', '${s.version}')">
+                    <div class="flex justify-center mb-4">
+                         <img src="/source/png/${(s.mod_loader || 'vanilla').toLowerCase()}.png" class="w-16 h-16" onerror="this.src='/source/png/server.png'">
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-lg font-medium">${s.name}</h3>
+                        <p class="text-sm text-gray-500">${s.version} • ${s.mod_loader || 'Vanilla'}</p>
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    function selectServer(name, loader, version) {
+        document.getElementById("server-selector").classList.add("hidden");
+        document.getElementById("store-interface").classList.remove("hidden");
+        document.getElementById("current-server-name").textContent = name;
+        
+        // Init the store logic
+        if(window.views && views.modloader) {
+            views.modloader.init(name, loader, version);
+        }
+    }
+</script>
+{% endblock %}

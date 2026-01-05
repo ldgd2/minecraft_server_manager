@@ -1,0 +1,209 @@
+<!-- Modal: Server Creation Wizard -->
+<div id="create-server-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="views.modals.close('create-server-modal')"></div>
+    <div class="modal-container modal-container--lg">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <img src="/source/png/server.png" class="icon-img">
+                Create New Server
+            </h2>
+            <button class="modal-close" onclick="views.modals.close('create-server-modal')">
+                <ion-icon name="close-outline"></ion-icon>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <!-- Step Indicator -->
+            <div class="wizard-steps">
+                <div class="wizard-step active" data-step="1">
+                    <span class="wizard-step-number">1</span>
+                    <span class="wizard-step-label">Basic Info</span>
+                </div>
+                <div class="wizard-step" data-step="2">
+                    <span class="wizard-step-number">2</span>
+                    <span class="wizard-step-label">Resources</span>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <span class="wizard-step-number">3</span>
+                    <span class="wizard-step-label">Review</span>
+                </div>
+            </div>
+            
+            <!-- Step 1: Basic Info -->
+            <div class="wizard-panel active" data-panel="1">
+                <div class="form-group">
+                    <label class="form-label">
+                        <img src="/source/png/server.png" class="icon-img icon-img--xs">
+                        Server Name
+                    </label>
+                    <input type="text" id="wizard-name" class="form-input" placeholder="my-awesome-server">
+                    <span class="form-hint">Unique name, lowercase, no spaces</span>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <img src="/source/png/version.png" class="icon-img icon-img--xs">
+                            Minecraft Version
+                        </label>
+                        <select id="wizard-version" class="form-input">
+                            <!-- Populated by JS from API -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <img src="/source/png/mod.png" class="icon-img icon-img--xs">
+                            Mod Loader
+                        </label>
+                        <div class="mod-loader-grid">
+                            <label class="mod-loader-option active" data-loader="VANILLA">
+                                <input type="radio" name="mod_loader" value="VANILLA" checked>
+                                <img src="/source/png/vanilla.png" class="icon-img">
+                                <span>Vanilla</span>
+                            </label>
+                            <label class="mod-loader-option" data-loader="FORGE">
+                                <input type="radio" name="mod_loader" value="FORGE">
+                                <img src="/source/png/forge.png" class="icon-img">
+                                <span>Forge</span>
+                            </label>
+                            <label class="mod-loader-option" data-loader="FABRIC">
+                                <input type="radio" name="mod_loader" value="FABRIC">
+                                <img src="/source/png/fabric.png" class="icon-img">
+                                <span>Fabric</span>
+                            </label>
+                            <label class="mod-loader-option" data-loader="PAPER">
+                                <input type="radio" name="mod_loader" value="PAPER">
+                                <img src="/source/png/paper.png" class="icon-img">
+                                <span>Paper</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Port</label>
+                        <input type="number" id="wizard-port" class="form-input" value="25565" min="1024" max="65535">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Players</label>
+                        <input type="number" id="wizard-max-players" class="form-input" value="20" min="1" max="100">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Resources -->
+            <div class="wizard-panel" data-panel="2">
+                <div class="system-info-banner">
+                    <img src="/source/png/windows.png" class="icon-img" id="os-icon">
+                    <span>System: <strong id="system-os">Loading...</strong></span>
+                </div>
+                
+                <div class="resource-allocator">
+                    <div class="resource-slider-group">
+                        <div class="resource-header">
+                            <img src="/source/png/cpu.png" class="icon-img">
+                            <span class="resource-title">CPU Cores</span>
+                            <span class="resource-available">Available: <strong id="cpu-available">-</strong></span>
+                        </div>
+                        <div class="resource-slider-container">
+                            <input type="range" id="wizard-cpu" class="resource-slider" min="0.5" max="8" step="0.5" value="1">
+                            <div class="resource-value">
+                                <span id="wizard-cpu-value">1</span> cores
+                            </div>
+                        </div>
+                        <div class="resource-bar-visual">
+                            <div class="resource-bar-used" id="cpu-used-bar"></div>
+                            <div class="resource-bar-new" id="cpu-new-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-slider-group">
+                        <div class="resource-header">
+                            <img src="/source/png/ram.png" class="icon-img">
+                            <span class="resource-title">RAM Memory</span>
+                            <span class="resource-available">Available: <strong id="ram-available">-</strong></span>
+                        </div>
+                        <div class="resource-slider-container">
+                            <input type="range" id="wizard-ram" class="resource-slider" min="512" max="16384" step="512" value="2048">
+                            <div class="resource-value">
+                                <span id="wizard-ram-value">2048</span> MB
+                            </div>
+                        </div>
+                        <div class="resource-bar-visual">
+                            <div class="resource-bar-used" id="ram-used-bar"></div>
+                            <div class="resource-bar-new" id="ram-new-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-slider-group">
+                        <div class="resource-header">
+                            <img src="/source/png/disk.png" class="icon-img">
+                            <span class="resource-title">Disk Space</span>
+                            <span class="resource-available">Available: <strong id="disk-available">-</strong></span>
+                        </div>
+                        <div class="resource-slider-container">
+                            <input type="range" id="wizard-disk" class="resource-slider" min="512" max="102400" step="512" value="2048">
+                            <div class="resource-value">
+                                <span id="wizard-disk-value">2048</span> MB
+                            </div>
+                        </div>
+                        <div class="resource-bar-visual">
+                            <div class="resource-bar-used" id="disk-used-bar"></div>
+                            <div class="resource-bar-new" id="disk-new-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3: Review -->
+            <div class="wizard-panel" data-panel="3">
+                <div class="review-grid">
+                    <div class="review-section">
+                        <h4>Server Configuration</h4>
+                        <dl class="review-list">
+                            <dt>Name</dt>
+                            <dd id="review-name">-</dd>
+                            <dt>Version</dt>
+                            <dd id="review-version">-</dd>
+                            <dt>Mod Loader</dt>
+                            <dd id="review-loader">-</dd>
+                            <dt>Port</dt>
+                            <dd id="review-port">-</dd>
+                            <dt>Max Players</dt>
+                            <dd id="review-players">-</dd>
+                        </dl>
+                    </div>
+                    <div class="review-section">
+                        <h4>Resource Allocation</h4>
+                        <dl class="review-list">
+                            <dt><img src="/source/png/cpu.png" class="icon-img icon-img--xs"> CPU</dt>
+                            <dd id="review-cpu">-</dd>
+                            <dt><img src="/source/png/ram.png" class="icon-img icon-img--xs"> RAM</dt>
+                            <dd id="review-ram">-</dd>
+                            <dt><img src="/source/png/disk.png" class="icon-img icon-img--xs"> Disk</dt>
+                            <dd id="review-disk">-</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="wizard-prev" onclick="views.wizard.prev()" disabled>
+                <ion-icon name="arrow-back-outline"></ion-icon>
+                Previous
+            </button>
+            <div class="modal-footer-spacer"></div>
+            <button class="btn btn-primary" id="wizard-next" onclick="views.wizard.next()">
+                Next
+                <ion-icon name="arrow-forward-outline"></ion-icon>
+            </button>
+            <button class="btn btn-success hidden" id="wizard-create" onclick="views.wizard.create()">
+                <ion-icon name="rocket-outline"></ion-icon>
+                Create Server
+            </button>
+        </div>
+    </div>
+</div>
