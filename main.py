@@ -24,7 +24,7 @@ import os
 
 # Router Imports
 # Router Imports
-from routes import auth, servers, system, files, mods, worlds, audit, versions
+from routes import auth, servers, system, files, mods, worlds, audit, versions, players
 
 app = FastAPI(title="Minecraft Server Manager")
 
@@ -60,6 +60,7 @@ app.include_router(worlds.router)
 app.include_router(audit.router)
 app.include_router(mods.router)
 app.include_router(versions.router)
+app.include_router(players.router)
 
 @app.on_event("startup")
 async def startup_event():
@@ -139,6 +140,10 @@ def files_page(request: Request):
 @app.get("/settings")
 def settings_page(request: Request):
     return templates.TemplateResponse("pages/settings/settings.html", {"request": request, "active_page": "settings", "hide_sidebar": True})
+
+@app.get("/apps/notepad")
+def notepad_app(request: Request):
+    return templates.TemplateResponse("pages/apps/notepad.html", {"request": request, "hide_sidebar": True})
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

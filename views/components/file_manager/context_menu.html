@@ -1,0 +1,132 @@
+<style>
+    /* Windows 11 Context Menu */
+    .context-menu {
+        position: fixed;
+        background: rgba(44, 44, 44, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        padding: 5px;
+        min-width: 220px;
+        z-index: 999999;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        opacity: 0;
+        transform: scale(0.95);
+        transition: opacity 0.1s ease, transform 0.1s ease;
+        visibility: hidden;
+    }
+
+    .context-menu.visible {
+        opacity: 1;
+        transform: scale(1);
+        visibility: visible;
+    }
+
+    .context-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #fff;
+        font-size: 13px;
+        transition: background 0.1s;
+        position: relative;
+    }
+
+    .context-menu-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .context-menu-item.danger:hover {
+        background: rgba(232, 17, 35, 0.8);
+    }
+
+    .context-menu-item i {
+        font-size: 16px;
+        color: rgba(255, 255, 255, 0.7);
+        width: 16px;
+        text-align: center;
+    }
+
+    .context-menu-item .arrow {
+        margin-left: auto;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .context-menu-separator {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 4px 6px;
+    }
+
+    /* Submenu */
+    .context-submenu {
+        position: absolute;
+        top: 0;
+        left: 100%;
+        margin-left: 4px;
+        background: rgba(44, 44, 44, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        padding: 5px;
+        min-width: 200px;
+        opacity: 0;
+        transform: translateX(-10px);
+        pointer-events: none;
+        transition: all 0.15s ease;
+    }
+
+    .context-menu-item:hover > .context-submenu,
+    .context-submenu:hover { /* Ensure it stays open when hovering the submenu itself */
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    /* Invisible bridge to prevent mouse leaving when moving to submenu */
+    .context-menu-item::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px; /* Bridge the gap */
+        width: 20px;
+        height: 100%;
+        display: none;
+    }
+
+    .context-menu-item:hover::after {
+        display: block;
+    }
+
+    /* Inline Renaming Input Styles */
+    .rename-input {
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #0078d4;
+        padding: 2px 4px;
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: 12px;
+        width: calc(100% - 8px);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
+        text-align: center;
+        margin-top: 4px;
+        z-index: 10;
+    }
+
+    /* List view specific adjust */
+    .fm-list .rename-input {
+        text-align: left;
+        margin-top: 0;
+        width: 100%;
+    }
+</style>
+
+<div id="context-menu" class="context-menu"></div>

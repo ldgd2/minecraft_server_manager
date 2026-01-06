@@ -280,3 +280,269 @@ def get_media_file(
         filename=target_path.name
     )
 
+
+# ============================================
+# FILE OPERATIONS (Copy, Move, Delete, etc.)
+# ============================================
+import shutil
+
+class FileOperationRequest(BaseModel):
+    source_path: str
+    dest_path: str = None
+    conflict: str = "fail" # fail, overwrite, rename
+
+class CreateRequest(BaseModel):
+    path: str
+    type: str = "folder" # folder, file
+
+class RenameRequest(BaseModel):
+    path: str
+    new_name: str
+
+@router.post("/browse/{root_name}/upload")
+async def upload_file_general(
+    root_name: str,
+    path: str = "",
+    conflict: str = "fail",
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    target_dir = base_path / path
+
+    if not is_safe_path(base_path, target_dir):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not target_dir.exists():
+         raise HTTPException(status_code=404, detail="Target directory not found")
+
+    results = []
+    
+    for file in files:
+        dest_path = target_dir / file.filename
+        
+        # Conflict resolution
+        if dest_path.exists():
+            if conflict == "fail":
+                results.append({"name": file.filename, "status": "error", "message": "File exists"})
+                continue
+            elif conflict == "overwrite":
+                pass # Will overwrite
+            elif conflict == "rename":
+                base, ext = os.path.splitext(file.filename)
+                counter = 1
+                while dest_path.exists():
+                    dest_path = target_dir / f"{base} ({counter}){ext}"
+                    counter += 1
+        
+        try:
+            content = await file.read()
+            with open(dest_path, "wb") as f:
+                f.write(content)
+            results.append({"name": file.filename, "status": "success", "path": str(dest_path.relative_to(base_path))})
+        except Exception as e:
+            results.append({"name": file.filename, "status": "error", "message": str(e)})
+            
+    return {"results": results}
+
+@router.post("/browse/{root_name}/copy")
+def copy_file_general(
+    root_name: str,
+    data: FileOperationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    
+    source = base_path / data.source_path
+    dest = base_path / data.dest_path
+    
+    if not is_safe_path(base_path, source) or not is_safe_path(base_path, dest):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Source not found")
+        
+    # Handle Conflict
+    if dest.exists():
+        if data.conflict == "fail":
+             raise HTTPException(status_code=409, detail="Destination exists")
+        elif data.conflict == "overwrite":
+            if dest.is_dir(): shutil.rmtree(dest)
+            else: dest.unlink()
+        elif data.conflict == "rename":
+             base, ext = os.path.splitext(dest.name)
+             counter = 1
+             parent = dest.parent
+             while dest.exists():
+                 dest = parent / f"{base} ({counter}){ext}"
+                 counter += 1
+
+    try:
+        if source.is_dir():
+            shutil.copytree(source, dest, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, dest)
+        return {"message": "Copied successfully", "new_path": str(dest.relative_to(base_path))}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/browse/{root_name}/move")
+def move_file_general(
+    root_name: str,
+    data: FileOperationRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    
+    source = base_path / data.source_path
+    dest = base_path / data.dest_path
+    
+    if not is_safe_path(base_path, source) or not is_safe_path(base_path, dest):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Source not found")
+        
+    # Handle Conflict
+    if dest.exists():
+        if data.conflict == "fail":
+             raise HTTPException(status_code=409, detail="Destination exists")
+        elif data.conflict == "overwrite":
+            if dest.is_dir(): shutil.rmtree(dest)
+            else: dest.unlink()
+        elif data.conflict == "rename":
+             base, ext = os.path.splitext(dest.name)
+             counter = 1
+             parent = dest.parent
+             while dest.exists():
+                 dest = parent / f"{base} ({counter}){ext}"
+                 counter += 1
+
+    try:
+        shutil.move(source, dest)
+        return {"message": "Moved successfully", "new_path": str(dest.relative_to(base_path))}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.api_route("/browse/{root_name}/delete", methods=["DELETE", "POST"])
+def delete_file_general(
+    root_name: str,
+    path: str,
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    target = base_path / path
+    
+    if not is_safe_path(base_path, target):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Path not found")
+        
+    try:
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
+        return {"message": "Deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/browse/{root_name}/create")
+def create_item_general(
+    root_name: str,
+    data: CreateRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    target = base_path / data.path
+    
+    if not is_safe_path(base_path, target):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    try:
+        if data.type == "folder":
+            target.mkdir(parents=True, exist_ok=True)
+        else:
+            if not target.exists():
+                target.touch()
+        return {"message": "Created successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/browse/{root_name}/rename")
+def rename_item_general(
+    root_name: str,
+    data: RenameRequest,
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    
+    source = base_path / data.path
+    dest = source.parent / data.new_name
+    
+    if not is_safe_path(base_path, source) or not is_safe_path(base_path, dest):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Source not found")
+    
+    if dest.exists():
+        raise HTTPException(status_code=409, detail="Name already taken")
+        
+    try:
+        source.rename(dest)
+        return {"message": "Renamed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/browse/{root_name}/extract")
+def extract_archive_general(
+    root_name: str,
+    data: FileOperationRequest, # reusing source_path as archive, dest_path as extract_to
+    current_user: User = Depends(get_current_user)
+):
+    if root_name not in ALLOWED_ROOTS:
+        raise HTTPException(status_code=403, detail="Directory not allowed")
+    
+    project_root = get_project_root()
+    base_path = project_root / ALLOWED_ROOTS[root_name]
+    
+    archive = base_path / data.source_path
+    dest = base_path / (data.dest_path if data.dest_path else ".")
+    
+    if not is_safe_path(base_path, archive) or not is_safe_path(base_path, dest):
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    if not archive.exists():
+        raise HTTPException(status_code=404, detail="Archive not found")
+        
+    try:
+        shutil.unpack_archive(str(archive), str(dest))
+        return {"message": "Extracted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")

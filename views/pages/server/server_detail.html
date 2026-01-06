@@ -861,28 +861,39 @@
                     </div>
                 </div>
 
-                <!-- Recent Activity -->
+                <!-- All Players History -->
                 <div class="win-card">
                     <div class="win-card-header">
                         <div class="win-card-title">
-                            <i class="ph ph-clock-counter-clockwise"></i>
-                            Actividad Reciente
+                            <i class="ph ph-address-book"></i>
+                            Historial de Jugadores
                         </div>
+                        <input type="text" class="win-form-input" placeholder="Buscar jugador..." style="width: 200px; padding: 6px 10px;" onkeyup="views.players.filter(this.value)">
                     </div>
-                    <div class="win-card-body" id="recent-activity-list">
-                        <div class="win-empty">
-                            <i class="ph ph-clock"></i>
-                            <p>Sin actividad reciente</p>
-                        </div>
+                    <div class="win-card-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+                         <table class="win-players-table">
+                            <thead>
+                                <tr>
+                                    <th>Jugador</th>
+                                    <th>Estado</th>
+                                    <th>Última Conexión</th>
+                                    <th>Tiempo Jugado</th>
+                                    <th style="text-align: right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-players-body">
+                                <tr><td colspan="5" class="win-empty">Cargando...</td></tr>
+                            </tbody>
+                         </table>
                     </div>
                 </div>
 
-                <!-- Banned Users -->
-                <div class="win-card">
+                <!-- Banned Users & IPs (Collapsible or just cards?) -->
+                 <div class="win-card">
                     <div class="win-card-header">
                         <div class="win-card-title">
                             <i class="ph ph-prohibit"></i>
-                            Usuarios Baneados
+                            Usuarios Sancionados
                         </div>
                     </div>
                     <div class="win-card-body" id="banned-users-list">
@@ -1144,4 +1155,48 @@
         }, 3000);
     });
 </script>
+    <!-- Player Details Modal -->
+    <dialog id="player-detail-modal" style="background: #202020; color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0; width: 600px; max-width: 90vw; outline: none; box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img id="p-modal-avatar" src="" style="width: 32px; height: 32px; border-radius: 6px;">
+                <span id="p-modal-title" style="font-weight: 600; font-size: 16px;">Detalles del Jugador</span>
+            </div>
+            <button onclick="document.getElementById('player-detail-modal').close()" style="background: none; border: none; color: #fff; cursor: pointer; padding: 4px;"><i class="ph ph-x" style="font-size: 20px;"></i></button>
+        </div>
+        
+        <div style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+            <!-- Generic Info -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <div class="win-card" style="margin: 0; padding: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-bottom: 4px;">UUID</span>
+                    <code id="p-modal-uuid" style="font-family: monospace; font-size: 12px; color: #60cdff;"></code>
+                </div>
+                 <div class="win-card" style="margin: 0; padding: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-bottom: 4px;">Primera Vez</span>
+                    <span id="p-modal-first" style="font-size: 13px;"></span>
+                </div>
+                 <div class="win-card" style="margin: 0; padding: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-bottom: 4px;">Última IP</span>
+                    <span id="p-modal-ip" style="font-size: 13px; filter: blur(4px); cursor: pointer;" onclick="this.style.filter='none'" title="Click to reveal">***.***.***.***</span>
+                </div>
+                 <div class="win-card" style="margin: 0; padding: 16px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-bottom: 4px;">Tiempo Total</span>
+                    <span id="p-modal-playtime" style="font-size: 13px;"></span>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Estadísticas</h4>
+            <div id="p-modal-stats" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 24px;">
+                <!-- JS Populated -->
+            </div>
+            
+            <h4 style="margin: 0 0 12px 0; font-size: 14px; color: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">Historial de Sanciones</h4>
+             <div id="p-modal-bans" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- JS Populated -->
+            </div>
+
+        </div>
+    </dialog>
 {% endblock %}

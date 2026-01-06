@@ -535,7 +535,15 @@
     .notepad-status-item {
         padding: 2px 8px;
     }
+
 </style>
+
+<!-- Components -->
+{% include "components/file_manager/drop_overlay.html" %}
+{% include "components/file_manager/context_menu.html" %}
+{% include "components/file_manager/progress_window.html" %}
+
+<!-- Notepad Modal -->
 
 <!-- Notepad Modal -->
 <div id="notepad-overlay" class="notepad-overlay">
@@ -796,6 +804,8 @@
     </div>
 </div>
 
+
+
 <script>
     // State
     let currentRoot = 'servers';
@@ -805,7 +815,16 @@
     let historyIndex = -1;
     let selectedItem = null;
 
+    // Clipboard State
+    window.appClipboard = {
+        action: null, // 'copy' | 'cut'
+        sourceRoot: null,
+        sourcePath: null,
+        files: [] // Array of { name, isDir }
+    };
+    
     // Windows 11 style icons by extension
+
     const fileIcons = {
         // Archives
         '.jar': 'ph-file-archive',
@@ -1093,6 +1112,19 @@
         document.getElementById('view-list').classList.toggle('active', view === 'list');
         refresh();
     }
+
+    // ============================================
+    // WINDOWS 11 FEATURES (Context Menu, Progress, DnD)
+    // ============================================
+
+
+</script>
+
+<!-- Logic for FileManager Features -->
+{% include "components/file_manager/scripts.html" %}
+{% include "components/file_manager/dialogs.html" %}
+
+<script>
 
     // ============================================
     // PHOTOS VIEWER

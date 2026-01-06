@@ -2076,36 +2076,145 @@ window.views = {
             if (!views.players.currentServer) return;
 
             try {
-                // Fetch both players and server info (for status)
-                const [playersRes, serverRes] = await Promise.all([
-                    app.authorizedFetch(`/servers/${views.players.currentServer}/players`),
-                    app.authorizedFetch(`/servers/`) // we filter client-side to find ours, or fetch specific if endpoint existed
-                ]);
-
-                if (!playersRes.ok) return;
-                const data = await playersRes.json();
+                // NEW: Fetch all players data (online + history)
+                const res = await app.authorizedFetch(`/api/players/${views.players.currentServer}`);
+                let allData = [];
                 
-                let isOnline = false;
-                if (serverRes.ok) {
-                    const servers = await serverRes.json();
-                    const current = servers.find(s => s.name === views.players.currentServer);
-                    if (current) isOnline = (current.status === "ONLINE");
+                if (res.ok) {
+                    const data = await res.json();
+                    allData = data.players || [];
+                    views.players.allData = allData;
+                    
+                    // Update Online Count
+                    const onlineCount = document.getElementById("online-count");
+                    if(onlineCount) {
+                        onlineCount.textContent = data.online_count || 0;
+                        onlineCount.className = (data.online_count > 0) ? "win-status online" : "win-status offline";
+                    }
+
+                    // Update Online List
+                    const onlinePlayers = allData.filter(p => p.is_online);
+                    // Map to format expected by renderPlayer
+                    views.players.updateOnlinePlayers(onlinePlayers.map(p => ({ username: p.name, uuid: p.uuid, ip: p.ip })));
+                    
+                    // Update All Players Table
+                    views.players.renderAllPlayers(allData);
                 }
 
-                views.players.updateVisibility(isOnline);
-                
-                if (isOnline) {
-                    views.players.updateOnlinePlayers(data.online_players || []);
-                } else {
-                    views.players.updateOnlinePlayers([]); // Clear if offline
+                // LEGACY: Fetch ban data from old endpoint (to keep ban lists working)
+                const oldRes = await app.authorizedFetch(`/servers/${views.players.currentServer}/players`);
+                if(oldRes.ok) {
+                    const oldData = await oldRes.json();
+                    views.players.updateBannedUsers(oldData.banned_users || []);
+                    views.players.updateBannedIPs(oldData.banned_ips || []);
+                    views.players.updateRecentActivity(oldData.recent_activity || []);
                 }
-                
-                views.players.updateBannedUsers(data.banned_users || []);
-                views.players.updateBannedIPs(data.banned_ips || []);
-                views.players.updateRecentActivity(data.recent_activity || []);
                 
             } catch (e) {
                 console.error('Failed to load players:', e);
+            }
+        },
+
+        renderAllPlayers: (players) => {
+            const tbody = document.getElementById("all-players-body");
+            if(!tbody) return;
+            
+            if(players.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">No hay historial de jugadores</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = players.map(p => {
+                const statusClass = p.is_online ? 'online' : 'offline';
+                const statusText = p.is_online ? 'En Línea' : 'Offline';
+                const lastPlayed = p.is_online ? 'Ahora' : (p.last_played ? new Date(p.last_played).toLocaleString() : 'Nunca');
+                
+                return `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                    <td style="padding: 12px 16px;">
+                        <div class="win-player-row">
+                            <img src="${p.avatar_url}" class="win-player-avatar">
+                            <span>${p.name}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 12px 16px;"><span class="win-status ${statusClass}"><span class="win-status-dot"></span>${statusText}</span></td>
+                    <td style="padding: 12px 16px;">${lastPlayed}</td>
+                    <td style="padding: 12px 16px;">${p.total_playtime}</td>
+                    <td style="padding: 12px 16px; text-align: right;">
+                        <button class="win-player-action" onclick="views.players.openDetails('${p.uuid}')" title="Ver Detalles">
+                            <i class="ph ph-list-magnifying-glass"></i>
+                        </button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        },
+        
+        filter: (query) => {
+             if(!views.players.allData) return;
+             const filtered = views.players.allData.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+             views.players.renderAllPlayers(filtered);
+        },
+        
+        openDetails: async (uuid) => {
+            const modal = document.getElementById('player-detail-modal');
+            if(!modal) return;
+            
+            modal.showModal();
+            
+            // Loading state
+            document.getElementById('p-modal-title').textContent = "Cargando...";
+            document.getElementById('p-modal-stats').innerHTML = '<div class="loading-spinner"></div>';
+            
+            try {
+                const res = await app.authorizedFetch(`/api/players/${views.players.currentServer}/${uuid}`);
+                if(!res.ok) throw new Error("Failed");
+                const data = await res.json();
+                
+                document.getElementById('p-modal-title').textContent = data.info.name;
+                const avatar = document.getElementById('p-modal-avatar');
+                if(avatar) avatar.src = `https://minotar.net/avatar/${data.info.name}/64.png`;
+                
+                document.getElementById('p-modal-uuid').textContent = data.info.uuid;
+                document.getElementById('p-modal-first').textContent = data.info.first_seen ? new Date(data.info.first_seen).toLocaleDateString() : '-';
+                document.getElementById('p-modal-ip').textContent = data.info.last_ip || "N/A";
+                
+                const seconds = data.info.playtime_seconds || 0;
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                document.getElementById('p-modal-playtime').textContent = `${h}h ${m}m`;
+                
+                const statsDiv = document.getElementById('p-modal-stats');
+                if(Object.keys(data.stats).length > 0) {
+                     statsDiv.innerHTML = Object.entries(data.stats).map(([k, v]) => `
+                        <div class="win-card" style="margin: 0; padding: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02);">
+                             <span style="color: rgba(255,255,255,0.5); font-size: 11px; display: block; text-transform: capitalize;">${k.replace(/_/g, ' ')}</span>
+                             <span style="font-size: 14px; font-weight: 600;">${v}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    statsDiv.innerHTML = '<span style="color: rgba(255,255,255,0.5); font-size: 13px;">Sin estadísticas registradas.</span>';
+                }
+                
+                const bansDiv = document.getElementById('p-modal-bans');
+                if(data.bans.length > 0) {
+                    bansDiv.innerHTML = data.bans.map(b => `
+                        <div style="padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="color: #ef4444; font-weight: 600; font-size: 13px;">${b.active ? 'Activo' : 'Inactivo'}</span>
+                                <span style="color: rgba(255,255,255,0.5); font-size: 11px;">${new Date(b.issued).toLocaleDateString()}</span>
+                            </div>
+                            <div style="font-size: 13px;">${b.reason}</div>
+                        </div>
+                    `).join('');
+                } else {
+                     bansDiv.innerHTML = '<span style="color: rgba(255,255,255,0.5); font-size: 13px;">Ninguna sanción en el historial.</span>';
+                }
+
+            } catch(e) {
+                console.error(e);
+                views.toast.show("Error loading player details", "error");
+                modal.close();
             }
         },
 

@@ -10,7 +10,17 @@ const AVAILABLE_APPS = [
     { name: 'Audit', url: '/audit', icon: 'ph-scroll', color: 'text-yellow-500' },
     { name: 'Versions', url: '/versions', icon: 'ph-git-branch', color: 'text-orange-500' },
     { name: 'Settings', url: '/settings', icon: 'ph-gear', color: 'text-slate-300' },
-    { name: 'Files', url: '/files', icon: 'ph-folder', color: 'text-yellow-400' }
+    { name: 'Files', url: '/files', icon: 'ph-folder', color: 'text-yellow-400' },
+    { name: 'Notepad', url: '/apps/notepad', icon: 'ph-notepad', color: 'text-blue-500' }
+];
+
+// --- 0. MOCK RECENT FILES (For Start Menu) ---
+const RECENT_FILES = [
+    { name: "server.properties", path: "server.properties", root: "servers", type: "config" },
+    { name: "latest.log", path: "logs/latest.log", root: "servers", type: "log" },
+    { name: "banned-players.json", path: "banned-players.json", root: "servers", type: "json" },
+    { name: "ops.json", path: "ops.json", root: "servers", type: "json" },
+    { name: "spigot.yml", path: "spigot.yml", root: "servers", type: "config" }
 ];
 
 // --- 1. WINDOW COMPONENT SYSTEM (LAYOUT) ---
@@ -296,8 +306,16 @@ function manageWindowLimit(newId) {
     }
 
     // If limit reached, close oldest
+    // If limit reached, close oldest, UNLESS new window is Notepad (unlimited)
+    if (newId.includes("box-Notepad") || newId.includes("app-window-Notepad")) {
+        return true; 
+    }
+
     if (openWindows.length >= MAX_WINDOWS) {
-        const oldestId = openWindows[0]; // First element is oldest
+        // Find oldest that is NOT a notepad (if we want to preserve notepads)
+        // Or just strictly enforce limit for non-notepad apps.
+        // For now, let's just close the oldest one.
+        const oldestId = openWindows[0]; 
         closeWindow(oldestId);
         // closeWindow will remove it from array, but let's be safe and let openWindow add the new one
     }
@@ -324,8 +342,11 @@ function createOrGetWindow(app) {
             iconClass: `ph-fill ${app.icon}`,
             iconColor: app.color,
             content: iframeContent,
-            x: 100 + (openWindows.length * 30), // Cascade slightly
-            y: 50 + (openWindows.length * 30)
+            iconClass: `ph-fill ${app.icon}`,
+            iconColor: app.color,
+            content: iframeContent,
+            x: 100 + (Math.random() * 50), // Randomize slightly for multiples
+            y: 50 + (Math.random() * 50)
         });
 
         const tempDiv = document.createElement('div');
@@ -333,6 +354,42 @@ function createOrGetWindow(app) {
         win = tempDiv.firstElementChild;
         document.getElementById('windows-container').appendChild(win);
     }
+    return winId;
+}
+
+// Special handler for Notepad to allow multiple instances or loading files
+function createNotepadWindow(params = {}) {
+    const timestamp = Date.now();
+    const winId = `app-window-Notepad-${timestamp}`;
+    
+    // Construct URL with params
+    let url = '/apps/notepad';
+    if (params.file && params.root) {
+        url += `?file=${encodeURIComponent(params.file)}&root=${encodeURIComponent(params.root)}`;
+    }
+    
+    const iframeContent = `<iframe src="${url}" class="w-full h-full border-none" style="background: transparent;"></iframe>`;
+    
+    // Determine title
+    const title = params.file ? params.file.split('/').pop() : 'Bloc de notas';
+
+    const component = new WindowComponent({
+        id: winId,
+        title: title,
+        iconClass: 'ph-notepad',
+        iconColor: 'text-blue-500',
+        content: iframeContent,
+        x: 150 + (Math.random() * 100),
+        y: 100 + (Math.random() * 50),
+        width: 600,
+        height: 600
+    });
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = component.render();
+    const win = tempDiv.firstElementChild;
+    document.getElementById('windows-container').appendChild(win);
+    
     return winId;
 }
 
@@ -419,19 +476,61 @@ function toggleWindow(id) {
 }
 
 // --- APP LAUNCHER ---
-function launchApp(appName) {
-    const app = AVAILABLE_APPS.find(a => a.name === appName);
-    if(app) {
-        const winId = createOrGetWindow(app);
+function launchApp(appName, params = {}) {
+    // Special case for Notepad to allow multiple windows
+    if (appName === 'Notepad') {
+        const winId = createNotepadWindow(params);
         openWindow(winId);
-        
-        // Close start menu
-        const menu = document.getElementById('start-menu');
-        if (!menu.classList.contains('hidden')) {
-             toggleStartMenu();
+    } else {
+        const app = AVAILABLE_APPS.find(a => a.name === appName);
+        if(app) {
+            const winId = createOrGetWindow(app);
+            openWindow(winId);
         }
     }
+    
+    // Close start menu
+    const menu = document.getElementById('start-menu');
+    if (menu && !menu.classList.contains('hidden')) {
+         toggleStartMenu();
+    }
 }
+
+// Populate Recents
+function populateRecentFiles() {
+    const container = document.getElementById('start-recent-files');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    RECENT_FILES.forEach(file => {
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer group transition-colors';
+        el.onclick = () => {
+             // Logic: Open Files app at location AND Open Notepad with file
+             // 1. Open Notepad
+             launchApp('Notepad', { file: file.path, root: file.root });
+             // 2. Open Files (requires Files app to listen to URL or message, but for now just launch)
+             // Ideally we'd navigate Files app but that's complex cross-iframe. 
+             // Just opening the file editor is the primary "Recent" action.
+        };
+        
+        let icon = 'ph-file-text';
+        let color = 'text-gray-400';
+        if(file.type === 'json' || file.type === 'config') { icon = 'ph-gear'; color = 'text-slate-400'; }
+        if(file.type === 'log') { icon = 'ph-file-text'; color = 'text-yellow-400'; }
+        
+        el.innerHTML = `
+            <div class="${color}"><i class="ph-fill ${icon} text-2xl group-hover:scale-105 transition-transform"></i></div>
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-gray-200">${file.name}</span>
+                <span class="text-[10px] text-gray-500 group-hover:text-gray-400 transition-colors">Reciente</span>
+            </div>
+        `;
+        container.appendChild(el);
+    });
+}
+// Init Recents on load
+document.addEventListener('DOMContentLoaded', populateRecentFiles);
 
 function handleSearch(query) {
     const resultsContainer = document.getElementById('search-results');

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloc de notas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Iconos Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Fuente Segoe UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fira Code for Editor -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Segoe UI', 'Inter', sans-serif; background: #202020; color: #fff; overflow: hidden; }
+        .editor { font-family: 'Fira Code', monospace; line-height: 1.6; }
+        /* Scrollbar styles to match OS */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; border: 2px solid #202020; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- Menu Bar (Simulated) -->
+    <div class="h-8 flex items-center px-2 bg-[#2d2d2d] border-b border-white/10 select-none">
+        <button class="px-3 py-1 text-xs hover:bg-white/10 rounded transition-colors" onclick="saveFile()">Archivo</button>
+        <button class="px-3 py-1 text-xs hover:bg-white/10 rounded transition-colors" onclick="alert('Funcionalidad de Edición en desarrollo')">Editar</button>
+        <button class="px-3 py-1 text-xs hover:bg-white/10 rounded transition-colors" onclick="alert('Funcionalidad de Vista en desarrollo')">Ver</button>
+        <span id="file-status" class="ml-auto text-xs text-gray-400 italic px-2"></span>
+    </div>
+
+    <!-- Tabs Container (For multi-file support in future, currently just title) -->
+    <div class="h-9 bg-[#191919] flex items-end px-2 border-b border-white/5">
+        <div class="bg-[#202020] px-4 py-1.5 rounded-t-lg text-xs flex items-center gap-2 border-t border-x border-white/5 relative min-w-[150px]">
+            <span id="tab-title" class="truncate max-w-[200px]">Sin título</span>
+            <span id="tab-modified" class="hidden w-2 h-2 rounded-full bg-blue-500 ml-2"></span>
+            <div class="absolute top-0 right-0 h-0.5 w-full bg-blue-500"></div>
+        </div>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="flex-1 relative bg-[#202020]">
+        <textarea id="editor" class="w-full h-full bg-[#202020] text-gray-200 p-4 resize-none outline-none editor text-sm border-none" 
+                  spellcheck="false" placeholder="Escribe aquí..."></textarea>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="h-6 bg-[#007acc] text-white flex justify-between items-center px-3 text-[10px] select-none">
+        <div class="flex gap-4">
+            <span id="pos-indicator">Ln 1, Col 1</span>
+        </div>
+        <div class="flex gap-4">
+            <span>UTF-8</span>
+            <span>Windows (CRLF)</span>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const tabTitle = document.getElementById('tab-title');
+        const tabModified = document.getElementById('tab-modified');
+        const posIndicator = document.getElementById('pos-indicator');
+        const statusMsg = document.getElementById('file-status');
+
+        let currentFilePath = null;
+        let currentRoot = null; // Derived or passed
+        let isModified = false;
+        let originalContent = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const path = params.get('file');
+            
+            if (path) {
+                // Determine root from path if not explicitly sent? 
+                // The Files app should send the full identifying info.
+                // Assuming path is relative to some root, or we need root param.
+                // Let's assume Files app sends ?file=path/to/file&root=servers
+                const root = params.get('root');
+                if (root) {
+                    await loadFile(root, path);
+                } else {
+                    editor.value = "// Error: Root directory not specified for file: " + path;
+                }
+            }
+            
+            updateCursorPos();
+        });
+
+        async function loadFile(root, path) {
+            currentRoot = root;
+            currentFilePath = path;
+            const filename = path.split('/').pop();
+            tabTitle.textContent = filename;
+            statusMsg.textContent = 'Cargando...';
+            editor.disabled = true;
+
+            try {
+                // Check if it's a "virtual" file/log first? No, use standard API
+                // Authenticated fetch needed? Ideally yes, token is in localStorage of parent
+                // But this is an iframe. localStorage might not separate if same domain.
+                // It IS same domain.
+                const token = localStorage.getItem('token');
+                
+                const res = await fetch(`/api/files/browse/${root}/content?path=${encodeURIComponent(path)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error(await res.text());
+
+                const data = await res.json();
+                originalContent = data.content;
+                editor.value = data.content;
+                statusMsg.textContent = '';
+                
+            } catch (e) {
+                editor.value = `Error loading file:\n${e.message}`;
+                statusMsg.textContent = 'Error de carga';
+            } finally {
+                editor.disabled = false;
+            }
+        }
+
+        async function saveFile() {
+            if (!currentFilePath || !currentRoot) return;
+            
+            statusMsg.textContent = 'Guardando...';
+            const content = editor.value;
+            const token = localStorage.getItem('token');
+
+            try {
+                const res = await fetch(`/api/files/browse/${currentRoot}/save`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        path: currentFilePath,
+                        content: content
+                    })
+                });
+
+                if (!res.ok) throw new Error(await res.text());
+
+                originalContent = content;
+                isModified = false;
+                tabModified.classList.add('hidden');
+                statusMsg.textContent = 'Guardado';
+                setTimeout(() => statusMsg.textContent = '', 2000);
+
+            } catch (e) {
+                alert('Error guardando archivo: ' + e.message);
+                statusMsg.textContent = 'Error al guardar';
+            }
+        }
+
+        // Event Listeners
+        editor.addEventListener('input', () => {
+            if (editor.value !== originalContent) {
+                isModified = true;
+                tabModified.classList.remove('hidden');
+            } else {
+                isModified = false;
+                tabModified.classList.add('hidden');
+            }
+            updateCursorPos();
+        });
+
+        editor.addEventListener('keyup', updateCursorPos);
+        editor.addEventListener('click', updateCursorPos);
+        
+        editor.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + "    " + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 4;
+            }
+        });
+
+        function updateCursorPos() {
+            const val = editor.value;
+            const sel = editor.selectionStart;
+            const line = val.substring(0, sel).split('\n').length;
+            const col = sel - val.lastIndexOf('\n', sel - 1);
+            posIndicator.textContent = `Ln ${line}, Col ${col}`;
+        }
+
+        // Listen for parent messages (optional, if control from OS is needed)
+        window.addEventListener('message', (e) => {
+            if (e.data.type === 'SAVE_FILE') {
+                saveFile();
+            }
+        });
+    </script>
+</body>
+</html>

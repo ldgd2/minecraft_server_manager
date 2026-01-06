@@ -1,0 +1,168 @@
+<style>
+    /* Windows 11 Progress Window */
+    .progress-window {
+        position: fixed;
+        width: 400px;
+        background: #202020;
+        border: 1px solid #333;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        z-index: 10002;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .progress-header {
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+    }
+
+    .progress-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .progress-btn {
+        background: transparent;
+        border: none;
+        color: #ccc;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background 0.1s;
+    }
+
+    .progress-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+    }
+
+    .progress-content {
+        padding: 0 16px 16px;
+    }
+
+    .progress-info {
+        font-size: 12px;
+        color: #bbb;
+        margin-bottom: 2px;
+    }
+    
+    .progress-highlight {
+        color: #60cdff;
+        cursor: pointer;
+    }
+
+    .progress-percent {
+        font-size: 24px;
+        font-weight: 300;
+        margin: 8px 0;
+    }
+
+    .progress-bar-container {
+        height: 4px;
+        background: #333;
+        border-radius: 2px;
+        margin-bottom: 8px;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: #00cc6a; /* Windows Green */
+        width: 0%;
+        transition: width 0.2s linear;
+    }
+    
+    .progress-bar-fill.paused {
+        background: #ffcc00;
+    }
+    
+    .progress-bar-fill.error {
+        background: #ff4d4f;
+    }
+
+    .progress-details {
+        font-size: 11px;
+        color: #888;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 12px;
+    }
+    
+    .progress-graph {
+        margin-top: 12px;
+        height: 60px;
+        width: 100%;
+        border-top: 1px solid #333;
+        position: relative;
+        background: linear-gradient(180deg, rgba(0, 204, 106, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+        overflow: hidden;
+    }
+
+    .progress-graph svg {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .progress-graph path {
+        stroke: #00cc6a;
+        stroke-width: 1.5;
+        fill: rgba(0, 204, 106, 0.2);
+    }
+</style>
+
+<template id="progress-window-template">
+    <div class="progress-window">
+        <div class="progress-header">
+            <span class="progress-title">Copiando...</span>
+            <div class="progress-actions">
+                <button class="progress-btn minimize"><i class="ph ph-minus"></i></button>
+                <button class="progress-btn close"><i class="ph ph-x"></i></button>
+            </div>
+        </div>
+        <div class="progress-content">
+            <div class="progress-info">
+                <span class="progress-op">Copiando</span> 
+                <span class="progress-filename">archivo.txt</span> 
+                desde 
+                <span class="progress-source">Origen</span> 
+                a 
+                <span class="progress-dest">Destino</span>
+            </div>
+            
+            <div class="progress-percent">0% completado</div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill"></div>
+            </div>
+            
+            <div class="progress-details">
+                <span>Velocidad:</span> <span class="progress-speed">0 MB/s</span>
+                <span>Restante:</span> <span class="progress-time">Calculando...</span>
+                <span>Elementos:</span> <span class="progress-items">0 (0 MB)</span>
+            </div>
+
+            <div class="progress-graph">
+                <!-- SVG Graph will be injected here -->
+            </div>
+            
+            <div class="progress-more" style="margin-top: 8px; text-align: center;">
+                <button class="progress-highlight" style="background:none; border:none; font-size:11px;">Menos detalles</button>
+            </div>
+        </div>
+    </div>
+</template>

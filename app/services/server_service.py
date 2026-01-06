@@ -6,6 +6,9 @@ import subprocess
 from asyncio import subprocess as async_subprocess # Type hint use
 from sqlalchemy.orm import Session
 from database.models import Server
+from database.connection import SessionLocal
+from database.models.players.player import Player
+from database.models.players.player_detail import PlayerDetail
 
 # --- Player Manager ---
 class PlayerManager:
@@ -80,7 +83,10 @@ class PlayerManager:
             reason = match_lost.group(2)
             if update_state:
                 if username in self.online_players:
-                    del self.online_players[username]
+                    data = self.online_players.pop(username)
+                    joined_at = data.get('joined_at')
+                else:
+                    joined_at = None
                 
             # Refine reason for event log
             event_type = 'leave'
@@ -89,7 +95,7 @@ class PlayerManager:
             elif "Timed out" in reason:
                 event_type = 'leave' # or timeout
                 
-            return {'type': event_type, 'user': username, 'reason': reason, 'timestamp': timestamp}
+            return {'type': event_type, 'user': username, 'reason': reason, 'timestamp': timestamp, 'joined_at': joined_at}
 
         # Pattern 5: Left the game (Voluntary or consequence of lost connection)
         # "Username left the game"
@@ -98,8 +104,8 @@ class PlayerManager:
             username = match_left.group(1)
             if update_state:
                 if username in self.online_players:
-                    del self.online_players[username]
-                    return {'type': 'leave', 'user': username, 'reason': 'Left the game', 'timestamp': timestamp}
+                    data = self.online_players.pop(username)
+                    return {'type': 'leave', 'user': username, 'reason': 'Left the game', 'timestamp': timestamp, 'joined_at': data.get('joined_at')}
             else:
                  return {'type': 'leave', 'user': username, 'reason': 'Left the game', 'timestamp': timestamp}
             
@@ -148,8 +154,9 @@ class PlayerManager:
 
 # --- Process Logic (Internal to Service) ---
 class MinecraftProcess:
-    def __init__(self, name: str, ram_mb: int, jar_path: str, working_dir: str):
+    def __init__(self, name: str, ram_mb: int, jar_path: str, working_dir: str, server_id: int):
         self.name = name
+        self.server_id = server_id
         self.ram_mb = ram_mb
         self.jar_path = jar_path
         self.working_dir = working_dir
@@ -437,6 +444,91 @@ class MinecraftProcess:
          if len(self.recent_activity) > 50:
              self.recent_activity.pop()
     
+    
+    # --- DB Persistence ---
+    async def _persist_event_to_db(self, event):
+        await asyncio.get_event_loop().run_in_executor(None, self._sync_persist_event, event)
+
+    def _sync_persist_event(self, event):
+        session = SessionLocal()
+        try:
+            import datetime
+            import uuid as uuid_lib
+            
+            username = event.get('user')
+            if not username: return
+            
+            # Get UUID logic
+            # For 'join', uuid might be in self.player_manager (but race condition if looking at live dict?)
+            # Actually, the tail loop runs linearly? Yes.
+            # But 'leave' removed it from dict.
+            # However, we can try to find existing player in DB first.
+            
+            # Heuristic: Try to find existing player by name in this server
+            player = session.query(Player).filter_by(server_id=self.server_id, name=username).first()
+            
+            player_uuid = None
+            if player:
+                player_uuid = player.uuid
+            else:
+                 # If not in DB, we need UUID.
+                 # Check PlayerManager cache (might have it if they just joined/left and it wasn't purged immediately? No, it pops on leave)
+                 # But we might have cached it in a separate persistent map?
+                 # Or generate offline UUID if we cant find it.
+                 # Ideally, 'join' event context should carry UUID if we extracted it.
+                 # But 'join' regex doesn't have UUID. UUID log line does.
+                 # We can store UUID history in PlayerManager.
+                 pass
+            
+            # Temporary: Generate Offline UUID if missing
+            if not player_uuid:
+                 player_uuid = str(uuid_lib.uuid3(uuid_lib.NAMESPACE_DNS, username))
+            
+            # Upsert Player
+            if not player:
+                player = Player(uuid=player_uuid, server_id=self.server_id, name=username)
+                session.add(player)
+                session.flush()
+            
+            # Upsert Details
+            detail = session.query(PlayerDetail).filter_by(player_uuid=player_uuid, server_id=self.server_id).first()
+            if not detail:
+                detail = PlayerDetail(player_uuid=player_uuid, server_id=self.server_id)
+                session.add(detail)
+                
+            now = datetime.datetime.now()
+            
+            if event['type'] == 'join':
+                detail.last_joined_at = now
+                # IP?
+                # PlayerManager tracks IP in memory.
+                # If we are in 'join', user is in memory.
+                p_data = self.player_manager.online_players.get(username)
+                if p_data and p_data.get('ip'):
+                    detail.last_ip = p_data.get('ip')
+                    
+            elif event['type'] in ['leave', 'kick']:
+                # Calculate playtime
+                # We need joined_at from event (we added it to return val in PlayerManager)
+                joined_at_iso = event.get('joined_at')
+                if joined_at_iso:
+                    try:
+                        joined_dt = datetime.datetime.fromisoformat(joined_at_iso)
+                        delta = (now - joined_dt).total_seconds()
+                        if delta > 0:
+                            if detail.total_playtime_seconds is None:
+                                detail.total_playtime_seconds = 0
+                            detail.total_playtime_seconds += int(delta)
+                    except: pass
+            
+            session.commit()
+            
+        except Exception as e:
+            print(f"DB Error persisting event: {e}")
+            session.rollback()
+        finally:
+            session.close()
+
     # --- Player Management Methods ---
     def get_online_players(self):
         """Get list of currently online players with their info"""
@@ -832,6 +924,9 @@ class MinecraftProcess:
                     event = self._parse_line_event(cleaned_line)
                     if event:
                         self._add_activity(event['type'], event['user'], event.get('reason'), event.get('timestamp'))
+                        # Persist to DB (Async wrapper)
+                        if event.get('type') in ['join', 'leave', 'kick', 'ban', 'ban-ip', 'unban', 'unban-ip']:
+                             asyncio.create_task(self._persist_event_to_db(event))
 
                     for queue in self.log_subscribers:
                         await queue.put(cleaned_line)
@@ -976,7 +1071,8 @@ class ServerService:
                 name=record.name,
                 ram_mb=record.ram_mb,
                 jar_path=jar_path,
-                working_dir=working_dir
+                working_dir=working_dir,
+                server_id=record.id
             )
             
             # --- Attempt Recovery ---
@@ -1177,7 +1273,8 @@ online-mode={'true' if online_mode else 'false'}
         instance = MinecraftProcess(
             name=name, ram_mb=ram_mb,
             jar_path=dest_jar,
-            working_dir=server_dir
+            working_dir=server_dir,
+            server_id=new_server.id
         )
         self.servers[name] = instance
         return new_server
@@ -1372,7 +1469,8 @@ online-mode={'true' if online_mode else 'false'}
                 name=server_name,
                 ram_mb=2048,
                 jar_path=jar_path,
-                working_dir=final_server_dir
+                working_dir=final_server_dir,
+                server_id=new_server.id
             )
             self.servers[server_name] = instance
             

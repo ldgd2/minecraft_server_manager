@@ -1,0 +1,168 @@
+<div id="conflict-dialog" class="modal-overlay">
+    <div class="modal-window windows-11-modal" style="width: 450px;">
+        <div class="modal-header">
+            <span class="modal-title">Conflicto de archivos</span>
+            <button class="modal-close" onclick="closeConflictDialog()"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="conflict-info">
+                <i class="ph ph-warning-circle warning-icon"></i>
+                <div class="conflict-text">
+                    <p>El destino ya tiene un archivo llamado <strong id="conflict-filename">archivo.txt</strong></p>
+                    <p class="sub-text">¿Qué deseas hacer?</p>
+                </div>
+            </div>
+            
+            <div class="conflict-options">
+                <div class="conflict-option" onclick="resolveConflict('overwrite')">
+                    <div class="option-icon"><i class="ph ph-arrow-circle-right"></i></div>
+                    <div class="option-details">
+                        <span class="option-title">Reemplazar el archivo</span>
+                        <span class="option-desc">Se sobrescribirá el archivo existente</span>
+                    </div>
+                </div>
+                
+                <div class="conflict-option" onclick="resolveConflict('rename')">
+                    <div class="option-icon"><i class="ph ph-pencil-simple"></i></div>
+                    <div class="option-details">
+                        <span class="option-title">Renombrar automáticamente</span>
+                        <span class="option-desc">Guardar como <span id="conflict-rename-preview">archivo (1).txt</span></span>
+                    </div>
+                </div>
+
+                <div class="conflict-option" onclick="resolveConflict('fail')">
+                    <div class="option-icon"><i class="ph ph-x-circle"></i></div>
+                    <div class="option-details">
+                        <span class="option-title">Omitir este archivo</span>
+                        <span class="option-desc">No se realizarán cambios</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="delete-dialog" class="modal-overlay">
+    <div class="modal-window windows-11-modal" style="width: 400px;">
+        <div class="modal-header">
+            <span class="modal-title">Eliminar elemento</span>
+            <button class="modal-close" onclick="closeDeleteDialog()"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="conflict-info">
+                <i class="ph ph-trash warning-icon" style="color: #e81123;"></i>
+                <div class="conflict-text">
+                    <p>¿Estás seguro de que deseas eliminar eliminar permanentemente <strong id="delete-filename">archivo.txt</strong>?</p>
+                    <p class="sub-text" style="color: #e81123;">Esta acción no se puede deshacer.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+                <button class="modal-btn" onclick="closeDeleteDialog()">Cancelar</button>
+                <button class="modal-btn danger" onclick="confirmDelete()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-btn {
+        padding: 6px 24px;
+        background: #333;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+    }
+    .modal-btn:hover {
+        background: #444;
+    }
+    .modal-btn.danger {
+        background: #e81123;
+        border-color: #e81123;
+    }
+    .modal-btn.danger:hover {
+        background: #c60d1d;
+    }
+</style>
+
+<style>
+    .windows-11-modal {
+        background: #202020;
+        border: 1px solid #333;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        color: #fff;
+    }
+    
+    .conflict-info {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        padding: 10px;
+    }
+    
+    .warning-icon {
+        font-size: 32px;
+        color: #ffb900;
+    }
+    
+    .conflict-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .conflict-option {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: 1px solid transparent;
+    }
+    
+    .conflict-option:hover {
+        background: #2d2d2d;
+        border-color: #3d3d3d;
+    }
+    
+    .option-icon {
+        font-size: 24px;
+        color: #60cdff;
+    }
+    
+    .option-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .option-title {
+        font-weight: 500;
+        font-size: 14px;
+    }
+    
+    .option-desc {
+        font-size: 12px;
+        color: #aaa;
+    }
+
+    .rename-input {
+        background: #1a1a1a;
+        color: #fff;
+        border: 1px solid #0078d4;
+        padding: 2px 4px;
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: inherit;
+        width: 100%;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
+    }
+</style>

@@ -1,0 +1,64 @@
+<style>
+    /* Drag and Drop Overlay */
+    .drop-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: #fff;
+        pointer-events: none; /* Let events pass through to verify drop */
+    }
+
+    .drop-overlay.active {
+        display: flex;
+    }
+
+    .drop-box {
+        border: 2px dashed #60cdff;
+        background: rgba(96, 205, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 80px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        transform: translateY(20px);
+        transition: transform 0.2s;
+    }
+    
+    .drop-overlay.active .drop-box {
+        transform: translateY(0);
+    }
+
+    .drop-box i {
+        font-size: 64px;
+        color: #60cdff;
+    }
+
+    .drop-box h3 {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .drop-box p {
+        color: rgba(255,255,255,0.7);
+        margin: 0;
+    }
+</style>
+
+<div id="drop-overlay" class="drop-overlay">
+    <div class="drop-box">
+        <i class="ph ph-arrow-down-to-line"></i>
+        <h3>Soltar archivos aquí</h3>
+        <p>para subirlos a esta carpeta</p>
+    </div>
+</div>

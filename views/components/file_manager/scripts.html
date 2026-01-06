@@ -1,0 +1,700 @@
+<script>
+    // ============================================
+    // WINDOWS 11 FEATURES (Context Menu, Progress, DnD, API)
+    // ============================================
+
+    // --- State & Helpers ---
+    let pendingConflictResolver = null; // Function to call when conflict resolved
+
+    function closeConflictDialog() {
+        document.getElementById('conflict-dialog').classList.remove('active');
+        if (pendingConflictResolver) pendingConflictResolver('fail');
+        pendingConflictResolver = null;
+    }
+
+    function resolveConflict(action) {
+        document.getElementById('conflict-dialog').classList.remove('active');
+        if (pendingConflictResolver) pendingConflictResolver(action);
+        pendingConflictResolver = null;
+    }
+
+    async function handleApiError(res) {
+        if (res.status === 409) {
+            // Conflict
+            return 'conflict';
+        }
+        const err = await res.json();
+        alert('Error: ' + err.detail);
+        throw new Error(err.detail);
+    }
+
+    async function showConflictDialog(filename) {
+        const dialog = document.getElementById('conflict-dialog');
+        document.getElementById('conflict-filename').textContent = filename;
+        document.getElementById('conflict-rename-preview').textContent = `Copia de ${filename}`;
+        dialog.classList.add('active');
+        
+        return new Promise(resolve => {
+            pendingConflictResolver = resolve;
+        });
+    }
+
+    // --- Delete Confirmation ---
+    let pendingDeleteResolver = null;
+
+    function closeDeleteDialog() {
+        document.getElementById('delete-dialog').classList.remove('active');
+        if (pendingDeleteResolver) pendingDeleteResolver(false);
+        pendingDeleteResolver = null;
+    }
+
+    function confirmDelete() {
+        document.getElementById('delete-dialog').classList.remove('active');
+        if (pendingDeleteResolver) pendingDeleteResolver(true);
+        pendingDeleteResolver = null;
+    }
+
+    async function showDeleteDialog(filename) {
+        const dialog = document.getElementById('delete-dialog');
+        document.getElementById('delete-filename').textContent = filename;
+        dialog.classList.add('active');
+        
+        return new Promise(resolve => {
+            pendingDeleteResolver = resolve;
+        });
+    }
+
+    // --- Context Menu System ---
+    class ContextMenu {
+        constructor() {
+            this.menu = document.getElementById('context-menu');
+            this.active = false;
+            
+            document.addEventListener('click', (e) => {
+                if (this.active && !this.menu.contains(e.target)) {
+                    this.hide();
+                }
+            });
+            
+            document.addEventListener('contextmenu', (e) => this.handleRightClick(e));
+        }
+
+        handleRightClick(e) {
+            e.preventDefault();
+            this.hide();
+
+            let target = e.target.closest('.fm-item');
+            let item = null;
+            
+            if (target) {
+                if (!target.classList.contains('selected')) {
+                    target.click();
+                }
+                item = selectedItem; // Assumes selectedItem is set by files.html logic
+            }
+
+            const items = this.buildMenu(item);
+            this.show(e.clientX, e.clientY, items);
+        }
+
+        buildMenu(item) {
+            const menuItems = [];
+
+            if (item) {
+                // File/Folder Options
+                menuItems.push({ label: 'Abrir', icon: 'ph-arrow-square-out', action: () => openItem(item.name, item.isDir) });
+                menuItems.push('separator');
+                menuItems.push({ label: 'Copiar', icon: 'ph-copy', action: () => this.copyItem(item) });
+                menuItems.push({ label: 'Cortar', icon: 'ph-scissors', action: () => this.cutItem(item) });
+                
+                const ext = item.name.split('.').pop().toLowerCase();
+                const archiveExts = ['zip', 'rar', '7z', 'tar', 'gz'];
+                if (!item.isDir && archiveExts.includes(ext)) {
+                    menuItems.push('separator');
+                    menuItems.push({ 
+                        label: 'Extraer todo...', 
+                        icon: 'ph-file-zip', 
+                        submenu: [
+                            { label: 'Extraer aquí', icon: 'ph-arrow-bend-down-right', action: () => this.extractItem(item, 'here') },
+                            { label: `Extraer en carpeta`, icon: 'ph-folder-plus', action: () => this.extractItem(item, 'folder') }
+                        ]
+                    });
+                }
+                
+                menuItems.push('separator');
+                menuItems.push({ label: 'Cambiar nombre', icon: 'ph-pencil-simple', action: () => this.renameItem(item) });
+                menuItems.push({ label: 'Eliminar', icon: 'ph-trash', danger: true, action: () => this.deleteItem(item) });
+            } else {
+                // Empty Space Options
+                menuItems.push({ label: 'Actualizar', icon: 'ph-arrows-clockwise', action: () => refresh() });
+                menuItems.push('separator');
+                
+                if (window.appClipboard && window.appClipboard.files.length > 0) {
+                     menuItems.push({ label: 'Pegar', icon: 'ph-clipboard-text', action: () => this.pasteItems() });
+                }
+                
+                menuItems.push('separator');
+                menuItems.push({ label: 'Nuevo', icon: 'ph-plus', submenu: [
+                    { label: 'Carpeta', icon: 'ph-folder', action: () => this.createNew('folder') },
+                    { label: 'Archivo de texto', icon: 'ph-file-text', action: () => this.createNew('file') }
+                ]});
+            }
+
+            return menuItems;
+        }
+
+        show(x, y, items) {
+            this.menu.innerHTML = '';
+            this.renderItems(this.menu, items);
+            this.menu.style.left = `${x}px`;
+            this.menu.style.top = `${y}px`;
+            this.menu.classList.add('visible');
+            this.active = true;
+            
+            const rect = this.menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) this.menu.style.left = `${window.innerWidth - rect.width - 5}px`;
+            if (rect.bottom > window.innerHeight) this.menu.style.top = `${window.innerHeight - rect.height - 5}px`;
+        }
+
+        hide() {
+            this.menu.classList.remove('visible');
+            this.active = false;
+        }
+
+        renderItems(container, items) {
+            items.forEach(item => {
+                if (item === 'separator') {
+                    const sep = document.createElement('div');
+                    sep.className = 'context-menu-separator';
+                    container.appendChild(sep);
+                    return;
+                }
+
+                const el = document.createElement('div');
+                el.className = `context-menu-item ${item.danger ? 'danger' : ''}`;
+                el.innerHTML = `<i class="ph ${item.icon}"></i> ${item.label}`;
+                
+                if (item.submenu) {
+                    el.innerHTML += `<span class="arrow"><i class="ph ph-caret-right"></i></span>`;
+                    const sub = document.createElement('div');
+                    sub.className = 'context-submenu';
+                    this.renderItems(sub, item.submenu);
+                    el.appendChild(sub);
+                } else if (item.action) {
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        item.action();
+                        this.hide();
+                    }
+                }
+                container.appendChild(el);
+            });
+        }
+
+        // --- Actions ---
+        copyItem(item) {
+            window.appClipboard = { action: 'copy', sourceRoot: currentRoot, sourcePath: currentPath, files: [item] };
+        }
+        
+        cutItem(item) {
+            window.appClipboard = { action: 'cut', sourceRoot: currentRoot, sourcePath: currentPath, files: [item] };
+        }
+        
+        async pasteItems() {
+             const cb = window.appClipboard;
+             if (!cb.files.length) return;
+             
+             const file = cb.files[0];
+             const endpoint = cb.action === 'cut' ? 'move' : 'copy';
+             const opName = cb.action === 'cut' ? 'Moviendo...' : 'Copiando...';
+             
+             // Construct source path relative to root
+             const sourceRel = cb.sourcePath ? `${cb.sourcePath}/${file.name}` : file.name;
+             const destRel = currentPath ? `${currentPath}/${file.name}` : file.name;
+
+             new ProgressWindow(
+                 opName, 
+                 file.name, 
+                 cb.sourcePath || 'Raíz', 
+                 currentPath || 'Raíz', 
+                 file.size || 0,
+                 async (progressWin) => {
+                    let conflict = 'fail';
+                    
+                    // First attempt
+                    let res = await fetch(`/api/files/browse/${currentRoot}/${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                        body: JSON.stringify({
+                            source_path: sourceRel,
+                            dest_path: destRel,
+                            conflict: 'fail'
+                        })
+                    });
+
+                    if (res.status === 409) {
+                        progressWin.pause();
+                        conflict = await showConflictDialog(file.name);
+                        progressWin.resume();
+                        
+                        if (conflict === 'fail') {
+                            progressWin.finish();
+                            return;
+                        }
+                        
+                        // Retry with resolution
+                        res = await fetch(`/api/files/browse/${currentRoot}/${endpoint}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                            body: JSON.stringify({
+                                source_path: sourceRel,
+                                dest_path: destRel,
+                                conflict: conflict
+                            })
+                        });
+                    }
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        alert('Error: ' + err.detail);
+                    } else {
+                        progressWin.update(file.size || 100); // 100%
+                        refresh();
+                        if (cb.action === 'cut') window.appClipboard.files = [];
+                    }
+                 }
+             );
+        }
+        
+        extractItem(item, mode) {
+            const destPath = mode === 'here' ? currentPath : (currentPath ? `${currentPath}/${item.name.split('.')[0]}` : item.name.split('.')[0]);
+            
+            new ProgressWindow(
+                'Extrayendo...', 
+                item.name, 
+                'Archivo comprimido', 
+                destPath || 'Carpeta actual', 
+                item.size, 
+                async (progressWin) => {
+                   const archivePath = currentPath ? `${currentPath}/${item.name}` : item.name;
+                   
+                   const res = await fetch(`/api/files/browse/${currentRoot}/extract`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                        body: JSON.stringify({
+                            source_path: archivePath,
+                            dest_path: destPath,
+                            conflict: 'overwrite' // Zip extraction usually overwrites or merges
+                        })
+                    });
+                    
+                    if (!res.ok) {
+                         const err = await res.json();
+                         alert('Error al extraer: ' + err.detail);
+                    } else {
+                         progressWin.update(item.size);
+                         refresh();
+                    }
+                }
+            );
+        }
+        
+        renameItem(item) {
+            const items = document.querySelectorAll('.fm-item');
+            let el = null;
+            items.forEach(i => {
+                // Find exact match by checking if it contains the selected class or name match
+                // Ideally we should use data attributes, but we rely on name matching for now
+                const nameEl = i.querySelector('.fm-item-name');
+                if (nameEl && nameEl.textContent.trim() === item.name) {
+                     // Check if this item is actually the one we clicked (interactive check)
+                     // If multiple items have same name (unlikely in same folder), pick first
+                     el = nameEl; 
+                }
+            });
+            
+            if (!el) return;
+            
+            const originalName = item.name;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalName;
+            input.className = 'rename-input';
+            
+            // Prevent event bubbling to avoid opening item
+            input.onclick = (e) => e.stopPropagation();
+            input.ondblclick = (e) => e.stopPropagation();
+            
+            input.onblur = () => {
+                this.commitRename(item, originalName, input.value, el);
+            };
+            
+            input.onkeydown = (e) => {
+                e.stopPropagation(); // Prevent global shortcuts
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    el.textContent = originalName;
+                }
+            };
+            
+            el.innerHTML = '';
+            el.appendChild(input);
+            input.focus();
+            
+            // Select filename without extension
+            const lastDot = originalName.lastIndexOf('.');
+            if (lastDot > 0) {
+                input.setSelectionRange(0, lastDot);
+            } else {
+                input.select();
+            }
+        }
+        
+        async commitRename(item, oldName, newName, domEl) {
+            if (!newName || newName === oldName) {
+                domEl.textContent = oldName;
+                return;
+            }
+            
+            const path = currentPath ? `${currentPath}/${oldName}` : oldName;
+            
+            const res = await fetch(`/api/files/browse/${currentRoot}/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({
+                    path: path,
+                    new_name: newName
+                })
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                alert(err.detail);
+                domEl.textContent = oldName;
+            } else {
+                refresh();
+            }
+        }
+        
+        async deleteItem(item) {
+            const confirmed = await showDeleteDialog(item.name);
+            if (confirmed) {
+                const path = currentPath ? `${currentPath}/${item.name}` : item.name;
+                fetch(`/api/files/browse/${currentRoot}/delete?path=${encodeURIComponent(path)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                }).then(async res => {
+                    if (!res.ok) {
+                         const err = await res.json();
+                         alert(err.detail);
+                    } else {
+                         refresh();
+                    }
+                });
+            }
+        }
+        
+        createNew(type) {
+             // visual placeholder for creation
+             // We can insert a generic item in grid and activate rename
+             // or just ask name. Implementing full inline creation is complex without re-rendering list
+             // For now, let's use a quick prompt but styled better? 
+             // User requested Windows style inline.
+             
+             // 1. Create dummy item data
+             const tempName = type === 'folder' ? 'Nueva carpeta' : 'Nuevo archivo.txt';
+             
+             // 2. Insert into DOM
+             const contentDiv = document.getElementById('file-content');
+             let container = contentDiv.querySelector(currentView === 'grid' ? '.fm-grid' : '.fm-list');
+             
+             // Check if we are in empty state, if so, clear it
+             if (!container) {
+                 contentDiv.innerHTML = '';
+                 container = document.createElement('div');
+                 container.className = currentView === 'grid' ? 'fm-grid' : 'fm-list';
+                 contentDiv.appendChild(container);
+             }
+             
+             const div = document.createElement('div');
+             div.className = 'fm-item';
+             div.innerHTML = `
+                <div class="fm-item-icon ${type === 'folder' ? 'folder' : 'file'}">
+                    <i class="ph ${type === 'folder' ? 'ph-folder' : 'ph-file-text'}"></i>
+                </div>
+                <div class="fm-item-name"></div>
+             `;
+             
+             if (currentView === 'grid') {
+                 container.insertBefore(div, container.firstChild);
+             } else {
+                 // List view needs row structure
+                 // Match the structure in files.html renderItem
+                 div.innerHTML = `
+                    <div class="fm-item-icon ${type === 'folder' ? 'folder' : 'file'}">
+                        <i class="ph ${type === 'folder' ? 'ph-folder' : 'ph-file-text'}"></i>
+                    </div>
+                    <span class="fm-item-name"></span>
+                    <span class="fm-item-meta">-</span>
+                    <span class="fm-item-meta">-</span>
+                 `;
+                 container.insertBefore(div, container.firstChild);
+             }
+             
+             // 3. Activate inline rename on this new element
+             const nameEl = div.querySelector('.fm-item-name');
+             const input = document.createElement('input');
+             input.type = 'text';
+             input.value = tempName;
+             input.className = 'rename-input';
+             
+             // Prevent bubbling
+             input.onclick = (e) => e.stopPropagation();
+             input.ondblclick = (e) => e.stopPropagation();
+             
+             nameEl.appendChild(input);
+             input.focus();
+             
+             // Select name part
+             const lastDot = tempName.lastIndexOf('.');
+             if (lastDot > 0) {
+                 input.setSelectionRange(0, lastDot);
+             } else {
+                 input.select();
+             }
+             
+             input.onblur = () => {
+                 this.commitCreate(type, input.value);
+             };
+             input.onkeydown = (e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') {
+                    div.remove(); // Cancel creation
+                    refresh();
+                }
+             };
+        }
+        
+        async commitCreate(type, name) {
+            if (!name) { refresh(); return; }
+            
+            const path = currentPath ? `${currentPath}/${name}` : name;
+            
+            const res = await fetch(`/api/files/browse/${currentRoot}/create`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({
+                    path: path,
+                    type: type
+                })
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                alert(err.detail);
+            }
+            refresh();
+        }
+    }
+
+    // --- Progress Window System ---
+    class ProgressWindow {
+        constructor(opName, fileName, source, dest, totalSize, asyncTask) {
+            this.totalSize = totalSize > 0 ? totalSize : 1024 * 1024; 
+            this.processed = 0;
+            this.startTime = Date.now();
+            this.paused = false;
+            
+            // UI Setup
+            const template = document.getElementById('progress-window-template');
+            this.el = template.content.cloneNode(true).firstElementChild;
+            document.body.appendChild(this.el);
+            
+            // Bind Elements
+            this.ui = {
+                title: this.el.querySelector('.progress-title'),
+                op: this.el.querySelector('.progress-op'),
+                filename: this.el.querySelector('.progress-filename'),
+                source: this.el.querySelector('.progress-source'),
+                dest: this.el.querySelector('.progress-dest'),
+                percent: this.el.querySelector('.progress-percent'),
+                bar: this.el.querySelector('.progress-bar-fill'),
+                speed: this.el.querySelector('.progress-speed'),
+                time: this.el.querySelector('.progress-time'),
+                items: this.el.querySelector('.progress-items'),
+                graph: this.el.querySelector('.progress-graph'),
+                minimize: this.el.querySelector('.progress-btn.minimize'),
+                close: this.el.querySelector('.progress-btn.close'),
+            };
+            
+            this.ui.title.textContent = opName || 'Operación';
+            this.ui.op.textContent = opName ? opName.replace('...', '') : 'Procesando';
+            this.ui.filename.textContent = fileName;
+            this.ui.source.textContent = source;
+            this.ui.dest.textContent = dest;
+            this.ui.time.textContent = 'Iniciando...';
+            
+            this.graphData = [];
+            this.ui.graph.innerHTML = `<svg viewBox="0 0 100 60" preserveAspectRatio="none"><path d="M0,60 L100,60" /></svg>`;
+            this.graphPath = this.ui.graph.querySelector('path');
+            
+            this.ui.close.onclick = () => this.cancel();
+            
+            // Start Task
+            if (asyncTask) {
+                asyncTask(this).then(() => {
+                    this.finish();
+                });
+            }
+        }
+        
+        update(bytesProcessed) {
+            this.processed = bytesProcessed;
+            const percent = Math.min(100, (this.processed / this.totalSize) * 100);
+            const now = Date.now();
+            const elapsed = (now - this.startTime) / 1000;
+            const speed = elapsed > 0 ? this.processed / elapsed : 0; // Bytes/s
+            
+            this.ui.percent.textContent = `${Math.floor(percent)}% completado`;
+            this.ui.bar.style.width = `${percent}%`;
+            
+            if (typeof formatSize === 'function') {
+                 this.ui.speed.textContent = `${formatSize(speed)}/s`;
+            } else {
+                 this.ui.speed.textContent = `${(speed/1024/1024).toFixed(1)} MB/s`;
+            }
+            
+            const remainingBytes = this.totalSize - this.processed;
+            let remainingTime = -1;
+            if (speed > 100) { 
+                remainingTime = remainingBytes / speed;
+            }
+            
+            if (remainingTime < 0 || !isFinite(remainingTime)) {
+                
+            } else {
+                this.ui.time.textContent = remainingTime < 60 ? 'Unos segundos' : `${Math.ceil(remainingTime/60)} min`;
+            }
+            
+            this.updateGraph(percent);
+        }
+        
+        pause() { this.paused = true; }
+        resume() { this.paused = false; }
+        
+        updateGraph(percent) {
+            const height = 60 - (Math.random() * 40 + 10); 
+            this.graphData.push(height);
+            if (this.graphData.length > 20) this.graphData.shift();
+            
+            let d = `M0,60 `;
+            const step = 100 / (this.graphData.length - 1);
+            this.graphData.forEach((h, i) => {
+                d += `L${i * step},${h} `;
+            });
+            d += `L100,60 Z`;
+            this.graphPath.setAttribute('d', d);
+        }
+        
+        finish() {
+            setTimeout(() => {
+                this.el.style.opacity = '0';
+                this.el.style.transform = 'scale(0.9)';
+                setTimeout(() => this.el.remove(), 300);
+            }, 500);
+        }
+        
+        cancel() {
+            if (confirm('¿Desea cancelar la operación?')) {
+                // Should invoke cancellation token on task
+                this.el.remove();
+            }
+        }
+    }
+
+    // --- Drag & Drop System ---
+    const dropOverlay = document.getElementById('drop-overlay');
+    let dragCounter = 0;
+
+    if (dropOverlay) {
+        window.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; dropOverlay.classList.add('active'); });
+        window.addEventListener('dragleave', (e) => { e.preventDefault(); dragCounter--; if(dragCounter===0) dropOverlay.classList.remove('active'); });
+        window.addEventListener('dragover', (e) => { e.preventDefault(); });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropOverlay.classList.remove('active');
+            handleDroppedFiles(e.dataTransfer.files);
+        });
+
+        function handleDroppedFiles(files) {
+            if (files.length === 0) return;
+            
+            Array.from(files).forEach(file => {
+                 new ProgressWindow(
+                     'Subiendo...',
+                     file.name,
+                     'Este equipo',
+                     currentPath || 'Raíz',
+                     file.size,
+                     async (progressWin) => {
+                         const formData = new FormData();
+                         formData.append('files', file);
+                         
+                         // Upload with XHR for progress
+                         return new Promise((resolve, reject) => {
+                             const xhr = new XMLHttpRequest();
+                             const url = `/api/files/browse/${currentRoot}/upload?path=${encodeURIComponent(currentPath)}&conflict=fail`;
+                             
+                             xhr.open('POST', url);
+                             xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+                             
+                             xhr.upload.onprogress = (e) => {
+                                 if (e.lengthComputable) {
+                                     progressWin.update(e.loaded);
+                                 }
+                             };
+                             
+                             xhr.onload = async () => {
+                                 if (xhr.status === 200) {
+                                     resolve();
+                                     refresh();
+                                 } else if (xhr.status === 409) {
+                                     // Conflict
+                                     progressWin.pause();
+                                     const conflict = await showConflictDialog(file.name);
+                                     progressWin.resume();
+                                     
+                                     if (conflict === 'fail') {
+                                         resolve();
+                                         return;
+                                     }
+                                     
+                                     // Retry
+                                     const retryUrl = `/api/files/browse/${currentRoot}/upload?path=${encodeURIComponent(currentPath)}&conflict=${conflict}`;
+                                     const retryXhr = new XMLHttpRequest();
+                                     retryXhr.open('POST', retryUrl);
+                                     retryXhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
+                                     retryXhr.upload.onprogress = xhr.upload.onprogress;
+                                     retryXhr.onload = () => { resolve(); refresh(); };
+                                     retryXhr.send(formData);
+                                 } else {
+                                     alert('Upload failed');
+                                     resolve();
+                                 }
+                             };
+                             
+                             xhr.onerror = () => { alert('Network error'); resolve(); };
+                             xhr.send(formData);
+                         });
+                     }
+                 );
+            });
+        }
+    }
+
+    // Initialize Global Instances
+    const contextMenu = new ContextMenu();
+</script>
