@@ -10,7 +10,7 @@ from asyncio import subprocess as async_subprocess
 from app.services.minecraft.player_manager import PlayerManager
 
 class MinecraftProcess:
-    def __init__(self, name: str, ram_mb: int, jar_path: str, working_dir: str):
+    def __init__(self, name: str, ram_mb: int, jar_path: str, working_dir: str, masterbridge_config: Dict = None):
         self.name = name
         self.ram_mb = ram_mb
         self.jar_path = jar_path
@@ -21,6 +21,32 @@ class MinecraftProcess:
         self.current_players = 0
         self.player_manager = PlayerManager()
         self.recent_activity = [] # List of {type, user, reason, time}
+        
+        # MasterBridge integration
+        self.masterbridge_client = None
+        print(f"DEBUG: Initializing MasterBridge for {name}")
+        print(f"DEBUG: masterbridge_config = {masterbridge_config}")
+        
+        if masterbridge_config and masterbridge_config.get('enabled'):
+            try:
+                from app.services.minecraft.masterbridge_client import MasterBridgeClient
+                print(f"DEBUG: MasterBridgeClient class imported successfully")
+                
+                mb_ip = masterbridge_config.get('ip', '127.0.0.1')
+                mb_port = masterbridge_config.get('port', 8081)
+                
+                print(f"DEBUG: Creating MasterBridgeClient(ip={mb_ip}, port={mb_port})")
+                self.masterbridge_client = MasterBridgeClient(ip=mb_ip, port=mb_port)
+                
+                print(f"✓ MasterBridge enabled for {name} at {mb_ip}:{mb_port}")
+                print(f"DEBUG: self.masterbridge_client = {self.masterbridge_client}")
+            except Exception as e:
+                print(f"ERROR: Failed to initialize MasterBridge for {name}: {e}")
+                import traceback
+                traceback.print_exc()
+                self.masterbridge_client = None
+        else:
+            print(f"DEBUG: MasterBridge NOT enabled for {name} (config={masterbridge_config})")
         
         # Load activity history on startup
         try:
@@ -80,9 +106,9 @@ class MinecraftProcess:
             # Filter out old memory args
             new_lines = [l for l in lines if not l.strip().startswith("-Xmx") and not l.strip().startswith("-Xms")]
             
-            # Append new memory args
+            # Append new memory args (same for Xms and Xmx = best practice for Minecraft)
             new_lines.append(f"\n-Xmx{self.ram_mb}M\n")
-            new_lines.append(f"-Xms{max(512, self.ram_mb // 2)}M\n")
+            new_lines.append(f"-Xms{self.ram_mb}M\n")
             
             with open(args_file, "w") as f:
                 f.writelines(new_lines)
@@ -118,7 +144,7 @@ class MinecraftProcess:
              cmd = [
                 "java",
                 f"-Xmx{self.ram_mb}M",
-                f"-Xms{max(512, self.ram_mb // 2)}M",
+                f"-Xms{self.ram_mb}M",  # Same as Xmx for optimal performance
                 "-jar",
                 self.jar_path,
                 "nogui"
@@ -283,13 +309,49 @@ class MinecraftProcess:
     
     # --- Player Management Methods ---
     def get_online_players(self):
+        # Try MasterBridge first if enabled
+        if self.masterbridge_client:
+            try:
+                mb_players = self.masterbridge_client.get_players()
+                if mb_players is not None:
+                    # Transform MasterBridge format to expected format
+                    result = []
+                    for p in mb_players:
+                        result.append({
+                            'username': p.get('name'),
+                            'uuid': p.get('uuid'),
+                            'ip': None,  # MasterBridge doesn't expose IP by default
+                            'joined_at': None,  # Not available in real-time API
+                            'ping': p.get('ping'),
+                            'health': p.get('health'),
+                            'food': p.get('food'),
+                            'level': p.get('level'),
+                            'dimension': p.get('dimension'),
+                            'pos': p.get('pos')
+                        })
+                    print(f"DEBUG: MasterBridge returned {len(result)} players for {self.name}")
+                    return result
+            except Exception as e:
+                print(f"WARN: MasterBridge get_players failed for {self.name}: {e}, falling back to log parsing")
+        
+        # Fallback to log parsing
         players = self.player_manager.get_players()
-        print(f"DEBUG: Process {self.name} get_online_players: {len(players)} players ({players})")
+        print(f"DEBUG: Process {self.name} get_online_players (log parsing): {len(players)} players ({players})")
         return players
     
     async def kick_player(self, username: str):
         if not self.is_running() or self._status != "ONLINE":
             return False
+            
+        # Try MasterBridge first
+        if self.masterbridge_client:
+            try:
+                if self.masterbridge_client.kick_player(username):
+                    print(f"INFO: Kicked player {username} from {self.name} via MasterBridge")
+                    return True
+            except Exception as e:
+                print(f"WARN: MasterBridge kick failed: {e}")
+
         await self.write(f"kick {username}")
         print(f"INFO: Kicked player {username} from {self.name}")
         return True
@@ -297,6 +359,15 @@ class MinecraftProcess:
     async def ban_user(self, username: str, reason: str = "Banned by admin", expires: str = "forever"):
         if not self.is_running() or self._status != "ONLINE":
             return False
+            
+        # Try MasterBridge first
+        if self.masterbridge_client:
+            try:
+                if self.masterbridge_client.ban_player(username, reason):
+                    print(f"INFO: Banned player {username} from {self.name} via MasterBridge")
+                    # We still update local files for redundancy
+            except Exception as e:
+                print(f"WARN: MasterBridge ban failed: {e}")
         
         await self.write(f"ban {username} {reason}")
         
@@ -410,6 +481,12 @@ class MinecraftProcess:
         return {"players": players, "ips": ips}
     
     async def unban_user(self, username: str):
+        # MasterBridge unban
+        if self.masterbridge_client:
+            try:
+                self.masterbridge_client.unban_player(username)
+            except: pass
+
         # Run command if online
         if self.is_running() and self._status == "ONLINE":
             await self.write(f"pardon {username}")
@@ -469,6 +546,43 @@ class MinecraftProcess:
         await self.write(f"deop {username}")
         print(f"INFO: De-opped player {username} on {self.name}")
         return True
+    
+    async def send_chat_message(self, text: str):
+        """Send a chat message to the game via MasterBridge API"""
+        if self.masterbridge_client:
+            try:
+                success = self.masterbridge_client.send_chat_message(text)
+                if success:
+                    print(f"INFO: Sent chat message to {self.name} via MasterBridge: {text}")
+                    return True
+                else:
+                    print(f"WARN: MasterBridge send_chat_message failed for {self.name}")
+            except Exception as e:
+                print(f"ERROR: Failed to send chat message via MasterBridge: {e}")
+        else:
+            print(f"ERROR: MasterBridge not enabled for {self.name}, cannot send chat message")
+        return False
+
+    # --- MasterBridge Event Triggers ---
+    async def trigger_event(self, context_data: Dict) -> bool:
+        if self.masterbridge_client:
+             return self.masterbridge_client.trigger_event(context_data)
+        return False
+        
+    async def trigger_cinematic(self, type_name: str, target: str, difficulty: int = 1) -> bool:
+        if self.masterbridge_client:
+             return self.masterbridge_client.trigger_cinematic(type_name, target, difficulty)
+        return False
+
+    async def trigger_paranoia(self, target: str, duration: int = 60) -> bool:
+        if self.masterbridge_client:
+             return self.masterbridge_client.trigger_paranoia(target, duration)
+        return False
+
+    async def trigger_special_event(self, event_type: str, target: str) -> bool:
+        if self.masterbridge_client:
+             return self.masterbridge_client.trigger_special_event(event_type, target)
+        return False
 
     def is_process_alive(self):
         pid = self._get_pid()
@@ -720,7 +834,20 @@ class MinecraftProcess:
                 player_count = players_from_log
                 self.current_players = players_from_log  # Update for next call
             
-            return {"status": self._status, "cpu": cpu, "ram": mem, "players": player_count, "recent_activity": getattr(self, 'recent_activity', [])}
+            stats = {"status": self._status, "cpu": cpu, "ram": mem, "players": player_count, "recent_activity": getattr(self, 'recent_activity', [])}
+            
+            # Merge MasterBridge data if available
+            if self.masterbridge_client:
+                try:
+                    mb_stats = self.masterbridge_client.get_server_stats()
+                    if mb_stats:
+                        stats['mb_ram_used'] = mb_stats.get('ram_used_mb')
+                        stats['mb_ram_max'] = mb_stats.get('ram_max_mb')
+                        stats['mb_tick_time'] = mb_stats.get('tick_time')
+                except Exception as e:
+                    pass  # Silently fail, regular stats are still valid
+            
+            return stats
         except psutil.NoSuchProcess:
             self._status = "OFFLINE"
             return {"status": "OFFLINE", "cpu": 0, "ram": 0, "players": 0}

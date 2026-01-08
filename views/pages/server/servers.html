@@ -727,11 +727,12 @@
 
     // Load servers with real data
     async function loadServers() {
+        if (document.hidden) return;
         const container = document.getElementById('server-list-container');
         
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('/api/servers', { 
+            const res = await fetch('/api/servers/', { 
                 headers: { 'Authorization': `Bearer ${token}` } 
             });
             
@@ -903,10 +904,10 @@
     // Auto-refresh servers every 5 seconds
     function startAutoRefresh() {
         if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(loadServers, 5000);
+        refreshInterval = setInterval(loadServers, 10000);
         
         if (perfInterval) clearInterval(perfInterval);
-        perfInterval = setInterval(updatePerformance, 2000);
+        perfInterval = setInterval(updatePerformance, 5000);
         updatePerformance();
     }
 
@@ -926,6 +927,7 @@
     }
 
     async function updatePerformance() {
+        if (document.hidden) return;
         try {
             const token = localStorage.getItem('token');
             const res = await fetch('/api/system/stats', { 

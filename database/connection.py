@@ -80,8 +80,11 @@ def create_app_engine():
     }
     
     if is_sqlite:
-        # Allow multi-threaded access for web servers
-        kwargs['connect_args'] = {'check_same_thread': False, 'timeout': 60}
+        # Allow multi-threaded access with better timeout
+        kwargs['connect_args'] = {
+            'check_same_thread': False, 
+            'timeout': 30  # Increased from 60 to 30 for faster failure
+        }
     
     elif is_mysql:
         # Handle connection timeouts
@@ -98,12 +101,13 @@ def create_app_engine():
 
     engine = create_engine(url, **kwargs)
 
-    # Force Disable WAL mode for SQLite (OneDrive Compatibility)
+    # Enable WAL mode for SQLite for better concurrency
     if is_sqlite:
         @event.listens_for(engine, "connect")
         def set_sqlite_pragma(dbapi_connection, connection_record):
             cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA journal_mode=DELETE")
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=30000")  # 30 seconds in milliseconds
             cursor.close()
 
     return engine

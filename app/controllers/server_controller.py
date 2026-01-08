@@ -74,12 +74,30 @@ class ServerController:
         if not server:
             return None
         
+        # Track if MasterBridge config changed
+        mb_config_changed = any(key in data for key in ['masterbridge_enabled', 'masterbridge_ip', 'masterbridge_port'])
+        
         for key, value in data.items():
             if value is not None and hasattr(server, key):
                 setattr(server, key, value)
         
         db.commit()
         db.refresh(server)
+        
+        # Reload MasterBridge client if configuration changed
+        if mb_config_changed:
+            process = server_service.get_process(name)
+            if process:
+                if server.masterbridge_enabled:
+                    from app.services.minecraft.masterbridge_client import MasterBridgeClient
+                    process.masterbridge_client = MasterBridgeClient(
+                        ip=server.masterbridge_ip or '127.0.0.1',
+                        port=server.masterbridge_port or 8081
+                    )
+                    print(f"INFO: MasterBridge client updated for {name}")
+                else:
+                    process.masterbridge_client = None
+                    print(f"INFO: MasterBridge client disabled for {name}")
         
         BitacoraService.add_log(db, "ADMIN", "SERVER_UPDATE", f"Updated server {name} with {list(data.keys())}")
         
@@ -223,4 +241,118 @@ class ServerController:
         if process:
             return await process.deop_player(username)
         return False
+    
+    async def send_chat_message(self, name: str, text: str, formatted: bool = False):
+        """
+        Send a chat message to the game
+        Args:
+            name: Server name
+            text: Message text
+            formatted: If True, sends as Admin with /tellraw, otherwise uses MasterBridge
+        """
+        process = server_service.get_process(name)
+        if not process:
+            return False
+        
+        if formatted:
+            # Use /tellraw command for formatted admin message with yellow <Admin>
+            # Escape quotes and backslashes in the message
+            escaped_text = text.replace('\\', '\\\\').replace('"', '\\"')
+            tellraw_command = f'tellraw @a [{{"text":"<","color":"yellow"}},{{"text":"Admin","color":"yellow"}},{{"text":"> ","color":"yellow"}},{{"text":"{escaped_text}","color":"white"}}]'
+            await process.write(tellraw_command)
+            return True
+        else:
+            # Use MasterBridge for regular messages
+            return await process.send_chat_message(text)
+    
+    # --- MasterBridge Data Retrieval ---
+    def get_mb_detailed_players(self, name: str):
+        """Get detailed player data from MasterBridge API"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_players()
+        return None
+    
+    def get_mb_chat(self, name: str):
+        """Get chat log from MasterBridge API"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_chat()
+        return None
+    
+    def get_mb_achievements(self, name: str):
+        """Get player achievements from MasterBridge API"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_achievements()
+        return None
+    
+    def get_mb_full_state(self, name: str):
+        """Get full server state from MasterBridge API"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_full_state()
+        return None
+
+    # --- MasterBridge Actions ---
+    async def trigger_event(self, name: str, data: dict):
+        process = server_service.get_process(name)
+        if process:
+            return await process.trigger_event(data)
+        return False
+
+    async def trigger_cinematic(self, name: str, type_name: str, target: str, difficulty: int):
+        process = server_service.get_process(name)
+        if process:
+            return await process.trigger_cinematic(type_name, target, difficulty)
+        return False
+
+    async def trigger_paranoia(self, name: str, target: str, duration: int):
+        process = server_service.get_process(name)
+        if process:
+            return await process.trigger_paranoia(target, duration)
+        return False
+
+    async def trigger_special_event(self, name: str, event_type: str, target: str):
+        process = server_service.get_process(name)
+        if process:
+            return await process.trigger_special_event(event_type, target)
+        return False
+
+    # --- Additional MasterBridge Data Methods ---
+    def get_mb_chat_log(self, name: str):
+        """Get complete chat log from MasterBridge"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_chat_log()
+        return None
+
+    def get_mb_online_players_detailed(self, name: str):
+        """Get detailed online players info from MasterBridge"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_online_players_detailed()
+        return None
+
+    def get_mb_server_status(self, name: str):
+        """Get server status from MasterBridge"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_server_status()
+        return None
+
+    def get_mb_active_events(self, name: str):
+        """Get active events from MasterBridge"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.get_active_events()
+        return None
+
+    def get_mb_resource_pack(self, name: str):
+        """Download resource pack from MasterBridge"""
+        process = server_service.get_process(name)
+        if process and process.masterbridge_client:
+            return process.masterbridge_client.download_resource_pack()
+        return None
+
 

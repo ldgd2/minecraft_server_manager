@@ -4,6 +4,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="/views/app/css/apps.css">
+<script src="/views/app/js/masterbridge.js"></script>
 <style>
     /* Windows 11 Settings Layout */
     .win-settings {
@@ -416,6 +417,8 @@
         font-size: 13px;
         color: #ccc;
         line-height: 1.6;
+        white-space: pre-wrap; /* Preserve line breaks and wrap long lines */
+        word-wrap: break-word;
     }
 
     .win-console-output::-webkit-scrollbar {
@@ -748,6 +751,10 @@
                 <i class="ph ph-terminal"></i>
                 Consola
             </button>
+            <button class="win-nav-item" onclick="showSection('chat')">
+                <i class="ph ph-chat-circle-text"></i>
+                Chat del Juego
+            </button>
             <button class="win-nav-item" onclick="showSection('jugadores')">
                 <i class="ph ph-users"></i>
                 Jugadores
@@ -767,6 +774,10 @@
             <button class="win-nav-item" onclick="showSection('ajustes')">
                 <i class="ph ph-gear"></i>
                 Ajustes
+            </button>
+            <button class="win-nav-item" onclick="showSection('masterbridge')">
+                <i class="ph ph-plugs-connected"></i>
+                MasterBridge Control
             </button>
         </nav>
 
@@ -830,6 +841,57 @@
                         <i class="ph ph-x-circle"></i>
                         Forzar Cierre
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="section-chat" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">Chat del Juego</h1>
+                <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 8px;">
+                    Historial del chat de esta sesión del servidor
+                </p>
+            </div>
+            <div class="win-content-body">
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-chat-circle-text"></i>
+                            Mensajes del Chat
+                        </div>
+                        <button class="win-control-btn" id="chat-refresh-btn">
+                            <i class="ph ph-arrows-clockwise"></i>
+                            Actualizar
+                        </button>
+                    </div>
+                    <div class="win-card-body" style="padding: 0;">
+                        <!-- Chat Messages Display -->
+                        <div id="chat-messages" style="height: 400px; overflow-y: auto; padding: 16px; background: rgba(0,0,0,0.2); font-family: 'Cascadia Code', monospace; font-size: 13px;">
+                            <div style="color: rgba(255,255,255,0.5); text-align: center; padding: 20px;">
+                                Cargando mensajes...
+                            </div>
+                        </div>
+                        
+                        <!-- Send Message Input -->
+                        <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <span style="color: #fbbf24; font-weight: 600; font-family: 'Cascadia Code', monospace;">&lt;Admin&gt;</span>
+                                <input type="text" 
+                                       id="chat-message-input" 
+                                       class="win-form-input" 
+                                       placeholder="Escribe un mensaje para enviar al chat del juego..."
+                                       style="flex: 1; padding: 10px 14px;">
+                                <button class="win-control-btn primary" id="chat-send-btn">
+                                    <i class="ph ph-paper-plane-tilt"></i>
+                                    Enviar
+                                </button>
+                            </div>
+                            <small style="color: rgba(255,255,255,0.5); font-size: 11px; display: block; margin-top: 8px;">
+                                Los mensajes aparecerán como <span style="color: #fbbf24;">&lt;Admin&gt;</span> en el chat del juego
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1008,6 +1070,187 @@
             </div>
         </div>
 
+        <!-- MasterBridge Control Section -->
+        <div id="section-masterbridge" class="win-section tab-hidden">
+            <div class="win-content-header">
+                <h1 class="win-content-title">MasterBridge Control</h1>
+                <p style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 8px;">
+                    Control avanzado del mod MasterBridge - API en tiempo real
+                </p>
+            </div>
+            <div class="win-content-body">
+                <!-- Server Status Card -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-chart-line"></i>
+                            Estado del Servidor
+                        </div>
+                        <button class="win-control-btn" onclick="views.masterbridge.refreshStatus()" style="padding: 6px 12px; font-size: 12px;">
+                            <i class="ph ph-arrows-clockwise"></i>
+                            Actualizar
+                        </button>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <div id="mb-server-status" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Events Monitor -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-activity"></i>
+                            Eventos Activos
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <div id="mb-active-events">
+                            <div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">
+                                <i class="ph ph-circle-notch ph-spin" style="font-size: 24px;"></i>
+                                <p style="marginmt: 8px;">Cargando eventos activos...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cinematics -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-film-slate"></i>
+                            Cinemáticas
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            Efectos cinemáticos para crear experiencias inmersivas
+                        </p>
+                        
+                        <div class="win-form-group">
+                            <label class="win-form-label">Tipo de Cinemática</label>
+                            <select id="cinematic-type" class="win-form-input" style="max-width: 400px;">
+                                <option value="">Seleccionar cinemática...</option>
+                                <option value="invasion">🔥 Invasion - Invasión de mobs</option>
+                                <option value="apocalypse">💀 Apocalypse - Evento apocalíptico</option>
+                                <option value="wildanimals">🐺 Wild Animals - Animales salvajes</option>
+                                <option value="meteor">☄️ Meteor - Lluvia de meteoros</option>
+                                <option value="darkness">🌑 Darkness - Oscuridad total</option>
+                                <option value="chicken">🐔 Chicken - Invasión de pollos</option>
+                                <option value="anvil">🔨 Anvil - Lluvia de yunques</option>
+                            </select>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Jugador Target</label>
+                            <select id="cinematic-player" class="win-form-input" style="max-width: 300px;">
+                                <option value="all">Todos los jugadores</option>
+                            </select>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Dificultad (1-5)</label>
+                            <input type="number" id="cinematic-difficulty" class="win-form-input" value="1" min="1" max="5" style="max-width: 150px;">
+                        </div>
+
+                        <button class="win-control-btn primary" onclick="views.masterbridge.triggerCinematic()">
+                            <i class="ph ph-film-slate"></i>
+                            Ejecutar Cinemática
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Paranoia System -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-skull"></i>
+                            Sistema de Paranoia
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            Activa efectos de paranoia: sonidos, efectos visuales y mensajes perturbadores
+                        </p>
+                        
+                        <div class="win-form-group">
+                            <label class="win-form-label">Jugador Target</label>
+                            <select id="paranoia-player" class="win-form-input" style="max-width: 300px;">
+                                <option value="">Seleccionar jugador...</option>
+                            </select>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Duración (segundos)</label>
+                            <input type="number" id="paranoia-duration" class="win-form-input" value="60" min="10" max="300" style="max-width: 200px;">
+                        </div>
+
+                        <button class="win-control-btn primary" onclick="views.masterbridge.triggerParanoia()">
+                            <i class="ph ph-skull"></i>
+                            Activar Paranoia
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Special Events -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-trophy"></i>
+                            Eventos Especiales
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            Desafíos especiales y arenas de combate
+                        </p>
+                        
+                        <div class="win-form-group">
+                            <label class="win-form-label">Tipo de Evento</label>
+                            <select id="special-event-type" class="win-form-input" style="max-width: 400px;">
+                                <option value="">Seleccionar evento...</option>
+                                <option value="admin_coliseum">🏛️ Admin Coliseum - Arena especial</option>
+                            </select>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Jugador Target</label>
+                            <select id="special-event-player" class="win-form-input" style="max-width: 300px;">
+                                <option value="">Seleccionar jugador...</option>
+                            </select>
+                        </div>
+
+                        <button class="win-control-btn primary" onclick="views.masterbridge.triggerSpecialEvent()">
+                            <i class="ph ph-trophy"></i>
+                            Iniciar Evento Especial
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resource Pack Download -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-package"></i>
+                            Resource Pack
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            Descargar el resource pack del servidor
+                        </p>
+                        
+                        <button class="win-control-btn" onclick="views.masterbridge.downloadResourcePack()">
+                            <i class="ph ph-download"></i>
+                            Descargar pack.zip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Section -->
         <div id="section-ajustes" class="win-section tab-hidden">
             <div class="win-content-header">
@@ -1046,6 +1289,50 @@
                     </div>
                 </div>
 
+                <!-- MasterBridge Configuration -->
+                <div class="win-card">
+                    <div class="win-card-header">
+                        <div class="win-card-title">
+                            <i class="ph ph-plugs-connected"></i>
+                            MasterBridge Mod Integration
+                        </div>
+                    </div>
+                    <div class="win-card-body" style="padding: 20px;">
+                        <p style="color: rgba(255,255,255,0.6); margin-bottom: 16px; font-size: 13px;">
+                            MasterBridge es un mod de Fabric que permite obtener información detallada del servidor en tiempo real (jugadores, chat, logros, etc.). 
+                            Activa esta opción solo si tienes el mod instalado en tu servidor.
+                        </p>
+
+                        <div class="win-form-group">
+                            <label class="win-form-checkbox">
+                                <input type="checkbox" id="setting-masterbridge-enabled" class="win-checkbox">
+                                Habilitar MasterBridge
+                            </label>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">IP del API de MasterBridge</label>
+                            <input type="text" id="setting-masterbridge-ip" class="win-form-input" placeholder="127.0.0.1" style="max-width: 300px;">
+                            <small style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-top: 4px;">
+                                Por defecto, el mod escucha en la misma máquina del servidor
+                            </small>
+                        </div>
+
+                        <div class="win-form-group">
+                            <label class="win-form-label">Puerto del API</label>
+                            <input type="number" id="setting-masterbridge-port" class="win-form-input" placeholder="8081" style="max-width: 200px;">
+                            <small style="color: rgba(255,255,255,0.5); font-size: 12px; display: block; margin-top: 4px;">
+                                Por defecto: 8081
+                            </small>
+                        </div>
+
+                        <button class="win-control-btn primary" onclick="views.server.saveSettings()" style="margin-top: 16px;">
+                            <i class="ph ph-floppy-disk"></i>
+                            Guardar Configuración
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Danger Zone -->
                 <div class="win-card" style="border-color: rgba(239, 68, 68, 0.3);">
                     <div class="win-card-header" style="border-color: rgba(239, 68, 68, 0.2);">
@@ -1070,7 +1357,637 @@
 </div>
 
 <script>
+    // Global constants - must be outside DOMContentLoaded
     const SERVER_NAME = "{{ server_name }}";
+    
+    // Wait for DOM and app.js to load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verify app.js loaded
+        if (typeof app === 'undefined') {
+            console.error('CRITICAL: app.js failed to load');
+            alert('Error: Application scripts not loaded. Please refresh the page.');
+            return;
+        }
+        
+        // Initialize views object
+        if (typeof views === 'undefined') {
+            window.views = {};
+        }
+        
+        // Define chat functionality NOW that SERVER_NAME is available
+        views.chat = {
+            currentServer: SERVER_NAME,
+            autoRefreshInterval: null,
+            
+            load: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/chat`);
+                    if (!res.ok) {
+                        document.getElementById('chat-messages').innerHTML = `
+                            <div style="color: rgba(239, 68, 68, 0.8); text-align: center; padding: 20px;">
+                                <i class="ph ph-warning-circle" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                                Error: MasterBridge no disponible
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const messages = await res.json();
+                    this.render(messages);
+                } catch (e) {
+                    console.error('Error loading chat:', e);
+                    document.getElementById('chat-messages').innerHTML = `
+                        <div style="color: rgba(239, 68, 68, 0.8); text-align: center; padding: 20px;">
+                            Error al cargar el chat.
+                        </div>
+                    `;
+                }
+            },
+            
+            render: function(messages) {
+                const container = document.getElementById('chat-messages');
+                if (!messages || messages.length === 0) {
+                    container.innerHTML = `
+                        <div style="color: rgba(255,255,255,0.5); text-align: center; padding: 20px;">
+                            No hay mensajes en el chat
+                        </div>
+                    `;
+                    return;
+                }
+                
+                messages.sort((a, b) => parseInt(a.time) - parseInt(b.time));
+                
+                container.innerHTML = messages.map(msg => {
+                    const timestamp = new Date(parseInt(msg.time));
+                    const timeStr = timestamp.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                    
+                    return `
+                        <div style="margin-bottom: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: rgba(255,255,255,0.4); font-size: 11px;">[${timeStr}]</span>
+                            <span style="color: #60cdff; font-weight: 600;">&lt;${msg.user}&gt;</span>
+                            <span style="color: rgba(255,255,255,0.9);">${this.escapeHtml(msg.text)}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.scrollTop = container.scrollHeight;
+            },
+            
+            send: async function() {
+                const input = document.getElementById('chat-message-input');
+                const text = input.value.trim();
+                
+                if (!text) return;
+                
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/chat`, {
+                        method: 'POST',
+                        body: JSON.stringify({ text: text, formatted: true })
+                    });
+                    
+                    if (!res.ok) {
+                        throw new Error('Failed to send message');
+                    }
+                    
+                    // Optimistically add message to UI as Admin
+                    const container = document.getElementById('chat-messages');
+                    const timestamp = new Date();
+                    const timeStr = timestamp.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                    
+                    // Check if container is empty/loading
+                    if (container.querySelector('.win-empty') || container.innerText.includes('Cargando...') || container.innerText.includes('No hay mensajes')) {
+                         container.innerHTML = '';
+                    }
+
+                    const msgHtml = `
+                        <div style="margin-bottom: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <span style="color: rgba(255,255,255,0.4); font-size: 11px;">[${timeStr}]</span>
+                            <span style="color: #fbbf24; font-weight: 600;">&lt;Admin&gt;</span>
+                            <span style="color: rgba(255,255,255,0.9);">${this.escapeHtml(text)}</span>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', msgHtml);
+                    container.scrollTop = container.scrollHeight;
+                    
+                    input.value = '';
+                    // We don't reload immediately because tellraw messages aren't in the log log anyway
+                    // setTimeout(() => this.load(), 500);
+                    
+                } catch (e) {
+                    console.error('Error sending chat message:', e);
+                    alert('Error al enviar mensaje.');
+                }
+            },
+            
+            escapeHtml: function(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            startAutoRefresh: function() {
+                if (this.autoRefreshInterval) clearInterval(this.autoRefreshInterval);
+                this.autoRefreshInterval = setInterval(() => {
+                    if (document.hidden) return;
+                    // Only poll if chat tab is visible
+                    const chatSection = document.getElementById('section-chat');
+                    if (chatSection && !chatSection.classList.contains('tab-hidden')) {
+                        this.load();
+                    }
+                }, 3000);
+            }
+        };
+        
+        // Define players functionality
+        views.players = {
+            currentServer: SERVER_NAME,
+            
+            load: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/players`);
+                    if (!res.ok) {
+                        document.getElementById('online-players-list').innerHTML = `
+                            <div class="win-empty">
+                                <i class="ph ph-warning-circle"></i>
+                                <p>Error: MasterBridge no disponible</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    const players = await res.json();
+                    this.render(players);
+                } catch (e) {
+                    console.error('Error loading players:', e);
+                    document.getElementById('online-players-list').innerHTML = `
+                        <div class="win-empty">
+                            <i class="ph ph-warning-circle"></i>
+                            <p>Error al cargar jugadores</p>
+                        </div>
+                    `;
+                }
+            },
+            
+            render: function(players) {
+                const container = document.getElementById('online-players-list');
+                const countSpan = document.getElementById('online-count');
+                
+                if (!players || players.length === 0) {
+                    container.innerHTML = `
+                        <div class="win-empty">
+                            <i class="ph ph-users-three"></i>
+                            <p>No hay jugadores en línea</p>
+                        </div>
+                    `;
+                    countSpan.textContent = '0';
+                    return;
+                }
+                
+                // Filter only online players (MasterBridge returns only online players, so we assume true if property missing)
+                const onlinePlayers = players.filter(p => p.online !== false);
+                countSpan.textContent = onlinePlayers.length;
+                
+                if (onlinePlayers.length === 0) {
+                    container.innerHTML = `
+                        <div class="win-empty">
+                            <i class="ph ph-users-three"></i>
+                            <p>No hay jugadores en línea</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = onlinePlayers.map(player => {
+                    return `
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                            <img src="https://mc-heads.net/avatar/${player.name}/32" 
+                                 style="width: 32px; height: 32px; border-radius: 4px; image-rendering: pixelated;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #fff; font-size: 14px;">${player.name}</div>
+                                <div style="font-size: 11px; color: rgba(255,255,255,0.5);">
+                                    <i class="ph ph-clock"></i> 
+                                    ${this.formatPlaytime(player.playtime || 0)}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                <button class="win-player-action" onclick="views.players.kick('${player.name}')" title="Kick">
+                                    <i class="ph ph-sign-out"></i>
+                                </button>
+                                <button class="win-player-action danger" onclick="views.players.ban('${player.name}')" title="Ban">
+                                    <i class="ph ph-prohibit"></i>
+                                </button>
+                            </div>
+                            <span class="win-status online" style="font-size: 11px; margin-left: 8px;">En línea</span>
+                        </div>
+                    `;
+                }).join('');
+            },
+            
+            formatPlaytime: function(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                }
+                return `${minutes}m`;
+            },
+            
+            kick: async function(playerName) {
+                if (!confirm(`¿Seguro que quieres expulsar a ${playerName}?`)) return;
+                
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/players/${playerName}/kick`, {
+                        method: 'POST'
+                    });
+                    
+                    if (res.ok) {
+                        alert(`${playerName} ha sido expulsado del servidor.`);
+                        this.load();
+                    } else {
+                        throw new Error('Failed to kick player');
+                    }
+                } catch (e) {
+                    console.error('Error kicking player:', e);
+                    alert('Error al expulsar jugador.');
+                }
+            },
+            
+            ban: async function(playerName) {
+                const reason = prompt(`Razón para banear a ${playerName}:`, 'Baneado por admin');
+                if (!reason) return;
+                
+                try {
+                    // Use the correct route from backend
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/players/${playerName}/ban`, {
+                        method: 'POST',
+                        body: JSON.stringify({ mode: 'username', reason: reason, expires: 'forever' })
+                    });
+                    
+                    if (res.ok) {
+                        alert(`${playerName} ha sido baneado.`);
+                        this.load();
+                    } else {
+                        throw new Error('Failed to ban player');
+                    }
+                } catch (e) {
+                    console.error('Error banning player:', e);
+                    alert('Error al banear jugador.');
+                }
+            },
+            
+            unban: async function(playerName) {
+                if (!confirm(`¿Seguro que quieres desbanear a ${playerName}?`)) return;
+                
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/players/${playerName}/unban`, {
+                        method: 'POST'
+                    });
+                    
+                    if (res.ok) {
+                        alert(`${playerName} ha sido desbaneado.`);
+                        this.load();
+                    } else {
+                        throw new Error('Failed to unban player');
+                    }
+                } catch (e) {
+                    console.error('Error unbanning player:', e);
+                    alert('Error al desbanear jugador.');
+                }
+            }
+        };
+        
+        // MasterBridge control functions
+        views.masterbridge = {
+            currentServer: SERVER_NAME,
+            refreshInterval: null,
+            
+            init: function() {
+                this.loadPlayers();
+                this.refreshStatus();
+                this.refreshActiveEvents();
+                
+                // Auto-refresh every 5 seconds
+                if (this.refreshInterval) clearInterval(this.refreshInterval);
+                this.refreshInterval = setInterval(() => {
+                    this.refreshStatus();
+                    this.refreshActiveEvents();
+                }, 5000);
+            },
+
+            cleanup: function() {
+                if (this.refreshInterval) {
+                    clearInterval(this.refreshInterval);
+                    this.refreshInterval = null;
+                }
+            },
+            
+            loadPlayers: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/players`);
+                    if (!res.ok) return;
+                    
+                    const data = await res.json();
+                    const players = data.online_players || [];
+                    
+                    // Update all player dropdowns
+                    const dropdowns = [
+                        'cinematic-player',
+                        'paranoia-player',
+                        'special-event-player'
+                    ];
+
+                    dropdowns.forEach(id => {
+                        const select = document.getElementById(id);
+                        if (!select) return;
+
+                        // Preserve "all" option for cinematic-player
+                        const hasAllOption = select.querySelector('option[value="all"]');
+                        select.innerHTML = hasAllOption ? '<option value="all">Todos los jugadores</option>' : '<option value="">Seleccionar jugador...</option>';
+
+                        players.forEach(player => {
+                            const option = document.createElement('option');
+                            option.value = player.name || player.username;
+                            option.textContent = player.name || player.username;
+                            select.appendChild(option);
+                        });
+                    });
+                } catch (e) {
+                    console.error('Error loading players:', e);
+                }
+            },
+
+            refreshStatus: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/server-status`);
+                    const container = document.getElementById('mb-server-status');
+                    if (!container) return;
+
+                    if (!res.ok) {
+                        container.innerHTML = `
+                            <div style="grid-column: 1 / -1; text-align: center; color: rgba(239, 68, 68, 0.8); padding: 20px;">
+                                <i class="ph ph-warning-circle" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                                MasterBridge no disponible
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const data = await res.json();
+                    
+                    container.innerHTML = `
+                        <div style="background: rgba(255,255,255,0.04); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 4px;">Jugadores Online</div>
+                            <div style="font-size: 24px; font-weight: 600; color: #60cdff;">${data.online_players}/${data.max_players}</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.04); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 4px;">MSPT (Milisegundos por Tick)</div>
+                            <div style="font-size: 24px; font-weight: 600; color: ${data.mspt < 50 ? '#22c55e' : '#ef4444'};">${data.mspt.toFixed(2)}</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.04); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 4px;">Versión</div>
+                            <div style="font-size: 18px; font-weight: 500; color: #fff;">${data.version}</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.04); padding: 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                            <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 4px;">MOTD</div>
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.8);">${data.motd || 'N/A'}</div>
+                        </div>
+                    `;
+                } catch (e) {
+                    console.error('Error refreshing status:', e);
+                }
+            },
+
+            refreshActiveEvents: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/active-events`);
+                    const container = document.getElementById('mb-active-events');
+                    if (!container) return;
+
+                    if (!res.ok) {
+                        container.innerHTML = `
+                            <div style="text-align: center; color: rgba(239, 68, 68, 0.8); padding: 20px;">
+                                <i class="ph ph-warning-circle" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                                No se pudo cargar eventos activos
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const data = await res.json();
+                    
+                    const waveEvents = Object.entries(data.wave_events || {});
+                    const cinematics = Object.entries(data.cinematics || {});
+                    const hasSpecialEvent = data.special_event_active;
+
+                    if (waveEvents.length === 0 && cinematics.length === 0 && !hasSpecialEvent) {
+                        container.innerHTML = `
+                            <div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">
+                                <i class="ph ph-check-circle" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+                                No hay eventos activos
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+
+                    waveEvents.forEach(([uuid, event]) => {
+                        html += `
+                            <div style="background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <i class="ph ph-siren" style="color: #ef4444; font-size: 18px;"></i>
+                                    <strong style="color: #ef4444;">${event.type}</strong>
+                                </div>
+                                <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                                    Mobs restantes: ${event.remaining_mobs} | Estado: ${event.is_eliminated ? 'Eliminado' : 'Activo'}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    cinematics.forEach(([uuid, active]) => {
+                        if (active) {
+                            html += `
+                                <div style="background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <i class="ph ph-film-slate" style="color: #3b82f6; font-size: 18px;"></i>
+                                        <strong style="color: #3b82f6;">Cinemática Activa</strong>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    if (hasSpecialEvent) {
+                        html += `
+                            <div style="background: rgba(168, 85, 247, 0.1); padding: 12px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="ph ph-trophy" style="color: #a855f7; font-size: 18px;"></i>
+                                    <strong style="color: #a855f7;">Evento Especial Activo</strong>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    container.innerHTML = html;
+                } catch (e) {
+                    console.error('Error refreshing active events:', e);
+                }
+            },
+            
+            triggerEvent: async function() {
+                const eventType = document.getElementById('event-type').value;
+                const playerName = document.getElementById('event-player').value;
+                
+                if (!eventType || !playerName) {
+                    app.notify('Por favor selecciona un tipo de evento y un jugador', 'error');
+                    return;
+                }
+                
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/events`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event_type: eventType, player_name: playerName })
+                    });
+                    
+                    if (res.ok) {
+                        app.notify(`Evento "${eventType}" disparado para ${playerName}`, 'success');
+                    } else {
+                        const error = await res.json();
+                        app.notify(error.detail || 'Error al disparar evento', 'error');
+                    }
+                } catch (e) {
+                    app.notify('Error de conexión', 'error');
+                }
+            },
+            
+            triggerCinematic: async function() {
+                const type = document.getElementById('cinematic-type').value;
+                const target = document.getElementById('cinematic-player').value;
+                const difficulty = parseInt(document.getElementById('cinematic-difficulty').value) || 1;
+
+                if (!type) {
+                    app.notify('Por favor selecciona un tipo de cinemática', 'error');
+                    return;
+                }
+
+                if (!target || target === '') {
+                    app.notify('Por favor selecciona un jugador', 'error');
+                    return;
+                }
+
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/cinematics`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type, target, difficulty })
+                    });
+
+                    if (res.ok) {
+                        app.notify(`Cinemática "${type}" activada para "${target}"`, 'success');
+                        this.refreshActiveEvents();
+                    } else {
+                        const error = await res.json();
+                        app.notify(error.detail || 'Error al activar cinemática', 'error');
+                    }
+                } catch (e) {
+                    console.error('Error triggering cinematic:', e);
+                    app.notify('Error de conexión', 'error');
+                }
+            },
+            
+            triggerParanoia: async function() {
+                const target = document.getElementById('paranoia-player').value;
+                const duration = parseInt(document.getElementById('paranoia-duration').value) || 60;
+
+                if (!target) {
+                    app.notify('Por favor selecciona un jugador', 'error');
+                    return;
+                }
+
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/paranoia`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ target, duration })
+                    });
+
+                    if (res.ok) {
+                        app.notify(`Paranoia activada en "${target}" por ${duration} segundos`, 'success');
+                    } else {
+                        const error = await res.json();
+                        app.notify(error.detail || 'Error al activar paranoia', 'error');
+                    }
+                } catch (e) {
+                    app.notify('Error de conexión', 'error');
+                }
+            },
+            
+            triggerSpecialEvent: async function() {
+                const type = document.getElementById('special-event-type').value;
+                const target = document.getElementById('special-event-player').value;
+
+                if (!type) {
+                    app.notify('Por favor selecciona un tipo de evento', 'error');
+                    return;
+                }
+
+                if (!target) {
+                    app.notify('Por favor selecciona un jugador', 'error');
+                    return;
+                }
+
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/special-events`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type, target })
+                    });
+
+                    if (res.ok) {
+                        app.notify(`Evento especial "${type}" activado para "${target}"`, 'success');
+                        this.refreshActiveEvents();
+                    } else {
+                        const error = await res.json();
+                        app.notify(error.detail || 'Error al activar evento especial', 'error');
+                    }
+                } catch (e) {
+                    app.notify('Error de conexión', 'error');
+                }
+            },
+
+            downloadResourcePack: async function() {
+                try {
+                    const res = await app.authorizedFetch(`/servers/${this.currentServer}/masterbridge/resource-pack`);
+                    
+                    if (!res.ok) {
+                        app.notify('Resource pack no disponible', 'error');
+                        return;
+                    }
+
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${this.currentServer}_pack.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    app.notify('Resource pack descargado', 'success');
+                } catch (e) {
+                    app.notify('Error al descargar resource pack', 'error');
+                }
+            }
+        };
+        
+        // Now proceed with initialization
+        app.checkAuth();
+        views.server.init(SERVER_NAME);
+    });
 
     function showSection(sectionId) {
         // Hide all sections
@@ -1089,8 +2006,17 @@
             views.server.loadMods();
         } else if (sectionId === 'archivos') {
             views.server.loadFiles();
+        } else if (sectionId === 'chat') {
+            if (typeof views.chat !== 'undefined') {
+                views.chat.load();
+            }
+        } else if (sectionId === 'masterbridge') {
+            if (typeof views.masterbridge !== 'undefined') {
+                views.masterbridge.init();
+            }
         }
     }
+
 
     function updateServerStatus(status) {
         const toggle = document.getElementById('server-toggle');
@@ -1116,6 +2042,51 @@
     document.addEventListener("DOMContentLoaded", () => {
         app.checkAuth();
         views.server.init(SERVER_NAME);
+        
+        // Initialize chat event listeners
+        const chatRefreshBtn = document.getElementById('chat-refresh-btn');
+        const chatSendBtn = document.getElementById('chat-send-btn');
+        const chatInput = document.getElementById('chat-message-input');
+        
+        if (chatRefreshBtn) {
+            chatRefreshBtn.addEventListener('click', () => {
+                if (typeof views.chat !== 'undefined') {
+                    views.chat.load();
+                }
+            });
+        }
+        
+        if (chatSendBtn) {
+            chatSendBtn.addEventListener('click', () => {
+                if (typeof views.chat !== 'undefined') {
+                    views.chat.send();
+                }
+            });
+        }
+        
+        if (chatInput) {
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && typeof views.chat !== 'undefined') {
+                    views.chat.send();
+                }
+            });
+        }
+        
+        // Start chat auto-refresh
+        if (typeof views.chat !== 'undefined') {
+            views.chat.startAutoRefresh();
+        }
+        
+        // Add event listener for cinematic type selection
+        const cinematicTypeSelect = document.getElementById('cinematic-type');
+        if (cinematicTypeSelect) {
+            cinematicTypeSelect.addEventListener('change', function() {
+                const intensityGroup = document.getElementById('shake-intensity-group');
+                if (intensityGroup) {
+                    intensityGroup.style.display = this.value === 'ShakeWorld' ? 'block' : 'none';
+                }
+            });
+        }
         
         // Override tab behavior for this page
         views.server.showTab = function(tabId) {

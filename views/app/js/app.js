@@ -177,6 +177,10 @@ window.views = {
 
         poll: async () => {
              try {
+                 if (document.hidden) {
+                     views.downloads.timer = setTimeout(views.downloads.poll, 5000);
+                     return;
+                 }
                  const res = await app.authorizedFetch("/versions/downloads/active");
                  if (!res.ok) return;
                  const tasks = await res.json();
@@ -188,7 +192,7 @@ window.views = {
                      views.downloads.timer = setTimeout(views.downloads.poll, 1000);
                      document.getElementById("download-manager").classList.remove("hidden");
                  } else {
-                     views.downloads.timer = setTimeout(views.downloads.poll, 3000); // Slow poll when idle
+                     views.downloads.timer = setTimeout(views.downloads.poll, 10000); // Slow poll when idle
                      // Don't auto-hide immediately, user might want to see history?
                      // For now, auto-hide if empty
                      document.getElementById("download-manager").classList.add("hidden");
@@ -261,7 +265,7 @@ window.views = {
                 if(document.hidden) return;
                 views.dashboard.loadSystemInfo();
                 views.dashboard.loadServers(); // Add this
-            }, 3000);
+            }, 5000);
         },
 
         loadServers: async () => {
@@ -1167,6 +1171,11 @@ window.views = {
                     if(document.getElementById("setting-motd")) document.getElementById("setting-motd").value = server.motd;
                     if(document.getElementById("setting-online-mode")) document.getElementById("setting-online-mode").checked = server.online_mode;
                     
+                    // Load MasterBridge configuration
+                    if(document.getElementById("setting-masterbridge-enabled")) document.getElementById("setting-masterbridge-enabled").checked = server.masterbridge_enabled || false;
+                    if(document.getElementById("setting-masterbridge-ip")) document.getElementById("setting-masterbridge-ip").value = server.masterbridge_ip || "127.0.0.1";
+                    if(document.getElementById("setting-masterbridge-port")) document.getElementById("setting-masterbridge-port").value = server.masterbridge_port || 8081;
+                    
                     // Show/Hide Paper Plugins Tab
                     const paperTabBtn = document.getElementById("tab-btn-paper");
                     if (paperTabBtn) {
@@ -1182,7 +1191,7 @@ window.views = {
 
         control: async (action) => {
             try {
-                await app.authorizedFetch(`/servers/${views.server.currentName}/control/${action}`, { method: "POST" });
+                await app.authorizedFetch(`/servers/${views.server.currentName}/${action}`, { method: "POST" });
                 views.toast.show(`Action '${action}' executed`, "success");
             } catch (e) {
                 views.toast.show(`Failed to ${action} server`, "error");
@@ -1559,7 +1568,11 @@ window.views = {
              const data = {
                 max_players: parseInt(document.getElementById("setting-max-players").value),
                 motd: document.getElementById("setting-motd").value,
-                online_mode: document.getElementById("setting-online-mode").checked
+                online_mode: document.getElementById("setting-online-mode").checked,
+                // MasterBridge configuration
+                masterbridge_enabled: document.getElementById("setting-masterbridge-enabled")?.checked || false,
+                masterbridge_ip: document.getElementById("setting-masterbridge-ip")?.value || "127.0.0.1",
+                masterbridge_port: parseInt(document.getElementById("setting-masterbridge-port")?.value) || 8081
             };
 
             try {
@@ -1569,6 +1582,7 @@ window.views = {
                 });
                 views.toast.show("Settings saved successfully", "success");
             } catch (e) {
+                console.error("Save settings error:", e);
                 views.toast.show("Failed to save settings", "error");
             }
         }

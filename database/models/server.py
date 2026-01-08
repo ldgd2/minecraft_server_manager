@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
-from database.models.base import Base
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime, Float
+from sqlalchemy.orm import relationship
+from . import Base
 import datetime
 
 class Server(Base):
@@ -25,8 +26,15 @@ class Server(Base):
     cpu_cores = Column(Float, default=1.0)
     disk_mb = Column(Integer, default=2048)
     
+    chat_history = relationship("ServerChat", back_populates="server", cascade="all, delete-orphan")
     # Runtime stats (updated while running)
     current_players = Column(Integer, default=0)
     cpu_usage = Column(Float, default=0.0)
     ram_usage = Column(Integer, default=0)
     disk_usage = Column(Integer, default=0)
+    
+    # MasterBridge mod integration
+    masterbridge_enabled = Column(Boolean, default=False)
+    masterbridge_ip = Column(String, default="127.0.0.1")
+    masterbridge_port = Column(Integer, default=8081)
+    masterbridge_config = Column(Text, default="{}") # JSON configuration storage

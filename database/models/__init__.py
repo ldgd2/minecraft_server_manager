@@ -4,6 +4,7 @@ from .base import Base
 # Export all models
 from .user import User
 from .server import Server
+from .server_chat import ServerChat
 from .bitacora import Bitacora
 from .version import Version
 from .mod_loader import ModLoader

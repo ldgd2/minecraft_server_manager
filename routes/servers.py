@@ -7,6 +7,7 @@ from app.controllers.server_controller import ServerController
 from app.services.audit_service import AuditService
 from database.schemas import ServerCreate, ServerUpdate, ServerResponse, ServerStats, ModSearchConnect
 from database.models.user import User
+from database.models.server import Server
 from routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/servers", tags=["Servers"])
@@ -288,3 +289,213 @@ async def deop_player(name: str, username: str, request: Request, db: Session = 
         return {"message": f"Player {username} de-opped"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{name}/chat")
+async def send_chat_message(
+    name: str, 
+    data: dict, 
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Send a chat message to the game via MasterBridge or /tellraw command"""
+    text = data.get("text")
+    formatted = data.get("formatted", False)  # If True, use /tellraw for admin message
+    
+    if not text:
+        raise HTTPException(status_code=400, detail="Missing 'text' field")
+    
+    try:
+        success = await server_controller.send_chat_message(name, text, formatted)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to send message. Server may not be online.")
+        AuditService.log_action(db, current_user, "SEND_CHAT", request.client.host, f"Sent chat to {name}: {text[:50]}")
+        return {"message": "Chat message sent successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# --- MasterBridge Data Endpoints ---
+@router.get("/{name}/masterbridge/players")
+def get_mb_players(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get detailed player information from MasterBridge mod and sync to database"""
+    from app.services.masterbridge_sync_service import sync_service
+    
+    # Get server record
+    server = db.query(Server).filter(Server.name == name).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Get data from MasterBridge
+    data = server_controller.get_mb_detailed_players(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    
+    # Sync to database
+    try:
+        sync_service.sync_players(db, server.id, data)
+    except Exception as e:
+        print(f"WARN: Failed to sync players to DB: {e}")
+    
+    return data
+
+@router.get("/{name}/masterbridge/chat")
+def get_mb_chat(name: str, current_user: User = Depends(get_current_user)):
+    """Get chat log from MasterBridge mod"""
+    data = server_controller.get_mb_chat(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.get("/{name}/masterbridge/achievements")
+def get_mb_achievements(name: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get player achievements from MasterBridge mod and sync to database"""
+    from app.services.masterbridge_sync_service import sync_service
+    from database.models.server import Server as ServerModel
+    
+    # Get server record
+    server = db.query(ServerModel).filter(ServerModel.name == name).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    
+    # Get data from MasterBridge
+    data = server_controller.get_mb_achievements(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    
+    # Sync to database
+    try:
+        sync_service.sync_achievements(db, server.id, data)
+    except Exception as e:
+        print(f"WARN: Failed to sync achievements to DB: {e}")
+    
+    return data
+
+@router.get("/{name}/masterbridge/state")
+def get_mb_full_state(name: str, current_user: User = Depends(get_current_user)):
+    """Get full server state from MasterBridge mod"""
+    data = server_controller.get_mb_full_state(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.post("/{name}/masterbridge/events")
+async def trigger_mb_event(
+    name: str, 
+    event_data: dict, 
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Trigger a generic event via MasterBridge"""
+    success = await server_controller.trigger_event(name, event_data)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to trigger event")
+    AuditService.log_action(db, current_user, "TRIGGER_EVENT", request.client.host, f"Triggered event on {name}")
+    return {"message": "Event triggered"}
+
+@router.post("/{name}/masterbridge/cinematics")
+async def trigger_mb_cinematic(
+    name: str, 
+    data: dict, 
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Trigger a cinematic"""
+    type_name = data.get("type")
+    target = data.get("target")
+    difficulty = data.get("difficulty", 1)
+    
+    success = await server_controller.trigger_cinematic(name, type_name, target, difficulty)
+    if not success:
+         raise HTTPException(status_code=400, detail="Failed to trigger cinematic")
+    AuditService.log_action(db, current_user, "TRIGGER_CINEMATIC", request.client.host, f"Triggered cinematic {type_name} on {name}")
+    return {"message": "Cinematic triggered"}
+
+@router.post("/{name}/masterbridge/paranoia")
+async def trigger_mb_paranoia(
+    name: str, 
+    data: dict, 
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Trigger paranoia"""
+    target = data.get("target")
+    duration = data.get("duration", 60)
+    
+    success = await server_controller.trigger_paranoia(name, target, duration)
+    if not success:
+         raise HTTPException(status_code=400, detail="Failed to trigger paranoia")
+    AuditService.log_action(db, current_user, "TRIGGER_PARANOIA", request.client.host, f"Triggered paranoia on {name} for {target}")
+    return {"message": "Paranoia triggered"}
+
+@router.post("/{name}/masterbridge/special-events")
+async def trigger_mb_special(
+    name: str, 
+    data: dict, 
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """Trigger special event"""
+    type_name = data.get("type")
+    target = data.get("target")
+    
+    success = await server_controller.trigger_special_event(name, type_name, target)
+    if not success:
+         raise HTTPException(status_code=400, detail="Failed to trigger special event")
+    AuditService.log_action(db, current_user, "TRIGGER_SPECIAL", request.client.host, f"Triggered special event {type_name} on {name}")
+    return {"message": "Special event triggered"}
+
+# --- Additional MasterBridge Endpoints ---
+@router.get("/{name}/masterbridge/chat-log")
+def get_mb_chat_log(name: str, current_user: User = Depends(get_current_user)):
+    """Get complete chat history from MasterBridge"""
+    data = server_controller.get_mb_chat_log(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.get("/{name}/masterbridge/players-detailed")
+def get_mb_players_detailed(name: str, current_user: User = Depends(get_current_user)):
+    """Get detailed player information (health, ping, position, etc)"""
+    data = server_controller.get_mb_online_players_detailed(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.get("/{name}/masterbridge/server-status")
+def get_mb_server_status(name: str, current_user: User = Depends(get_current_user)):
+    """Get detailed server status (MSPT, TPS, etc)"""
+    data = server_controller.get_mb_server_status(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.get("/{name}/masterbridge/active-events")
+def get_mb_active_events(name: str, current_user: User = Depends(get_current_user)):
+    """Get currently active events (wave_events, cinematics, special events)"""
+    data = server_controller.get_mb_active_events(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or not enabled")
+    return data
+
+@router.get("/{name}/masterbridge/resource-pack")
+def download_mb_resource_pack(name: str, current_user: User = Depends(get_current_user)):
+    """Download server resource pack"""
+    from fastapi.responses import Response
+    
+    data = server_controller.get_mb_resource_pack(name)
+    if data is None:
+        raise HTTPException(status_code=503, detail="MasterBridge not available or resource pack not found")
+    
+    return Response(
+        content=data,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename={name}_pack.zip"
+        }
+    )

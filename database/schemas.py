@@ -15,15 +15,21 @@ class ServerCreate(BaseModel):
     motd: Optional[str] = "A Minecraft Server"
 
 class ServerUpdate(BaseModel):
-    version: Optional[str]
-    ram_mb: Optional[int]
-    port: Optional[int]
-    online_mode: Optional[bool]
-    mod_loader: Optional[str]
-    cpu_cores: Optional[float]
-    disk_mb: Optional[int]
-    max_players: Optional[int]
-    motd: Optional[str]
+    version: Optional[str] = None
+    ram_mb: Optional[int] = None
+    port: Optional[int] = None
+    online_mode: Optional[bool] = None
+    mod_loader: Optional[str] = None
+    cpu_cores: Optional[float] = None
+    disk_mb: Optional[int] = None
+    max_players: Optional[int] = None
+    motd: Optional[str] = None
+    
+    # MasterBridge configuration
+    masterbridge_enabled: Optional[bool] = None
+    masterbridge_ip: Optional[str] = None
+    masterbridge_port: Optional[int] = None
+    masterbridge_config: Optional[str] = None
 
 class ServerResponse(ServerCreate):
     id: int
@@ -34,6 +40,11 @@ class ServerResponse(ServerCreate):
     ram_usage: Optional[int] = 0  # Match model field name
     current_players: Optional[int] = 0  # Match model field name
     disk_usage: Optional[int] = 0
+    # MasterBridge configuration
+    masterbridge_enabled: Optional[bool] = False
+    masterbridge_ip: Optional[str] = "127.0.0.1"
+    masterbridge_port: Optional[int] = 8081
+    masterbridge_config: Optional[str] = "{}"
     
     class Config:
         orm_mode = True

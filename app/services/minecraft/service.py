@@ -23,11 +23,21 @@ class ServerService:
             jar_path = os.path.join(self.base_dir, record.name, "server.jar")
             working_dir = os.path.join(self.base_dir, record.name)
             
+            # Prepare MasterBridge config
+            masterbridge_config = None
+            if record.masterbridge_enabled:
+                masterbridge_config = {
+                    'enabled': True,
+                    'ip': record.masterbridge_ip or '127.0.0.1',
+                    'port': record.masterbridge_port or 8081
+                }
+            
             instance = MinecraftProcess(
                 name=record.name,
                 ram_mb=record.ram_mb,
                 jar_path=jar_path,
-                working_dir=working_dir
+                working_dir=working_dir,
+                masterbridge_config=masterbridge_config
             )
             
             # --- Attempt Recovery ---
@@ -185,13 +195,37 @@ online-mode={'true' if online_mode else 'false'}
         db.commit()
         db.refresh(new_server)
 
-        instance = MinecraftProcess(
-            name=name, ram_mb=ram_mb,
-            jar_path=dest_jar,
-            working_dir=server_dir
-        )
+        # Use the new helper method to create the process instance
+        instance = self._create_process(new_server)
         self.servers[name] = instance
         return new_server
+
+    def _create_process(self, server_db: Server) -> MinecraftProcess:
+        """Create a MinecraftProcess instance from database model"""
+        print(f"DEBUG: _create_process called for server '{server_db.name}'")
+        
+        # MasterBridge configuration from database
+        masterbridge_config = None
+        if server_db.masterbridge_enabled:
+            masterbridge_config = {
+                'enabled': True,
+                'ip': server_db.masterbridge_ip or '127.0.0.1',
+                'port': server_db.masterbridge_port or 8081
+            }
+        
+        print(f"DEBUG: MasterBridge config for '{server_db.name}': {masterbridge_config}")
+        
+        process = MinecraftProcess(
+            name=server_db.name,
+            ram_mb=server_db.ram_mb,
+            jar_path=os.path.join(self.base_dir, server_db.name, "server.jar"),
+            working_dir=os.path.join(self.base_dir, server_db.name),
+            masterbridge_config=masterbridge_config
+        )
+        
+        print(f"DEBUG: MinecraftProcess created. masterbridge_client = {process.masterbridge_client}")
+        
+        return process
 
     def delete_server(self, db: Session, name: str):
         instance = self.servers.get(name)
@@ -373,12 +407,22 @@ online-mode={'true' if online_mode else 'false'}
             db.commit()
             db.refresh(new_server)
             
+            # Prepare MasterBridge config for imported server
+            masterbridge_config = None
+            if new_server.masterbridge_enabled:
+                masterbridge_config = {
+                    'enabled': True,
+                    'ip': new_server.masterbridge_ip or '127.0.0.1',
+                    'port': new_server.masterbridge_port or 8081
+                }
+            
             # Create process instance
             instance = MinecraftProcess(
                 name=server_name,
                 ram_mb=2048,
                 jar_path=jar_path,
-                working_dir=final_server_dir
+                working_dir=final_server_dir,
+                masterbridge_config=masterbridge_config
             )
             self.servers[server_name] = instance
             
